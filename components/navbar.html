@@ -1,0 +1,57 @@
+<!-- components/navbar.html - Ambiente Decor Adm -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
+    <div class="container-fluid">
+        <!-- Logo -->
+        <div class="navbar-brand fw-bold d-flex align-items-center">
+            <img src="img/logo.png" alt="Ambiente Decor" class="navbar-logo me-2" style="height: 35px; width: auto;"
+                 onerror="this.style.display='none';">
+            <span>Ambiente Decor</span>
+        </div>
+        
+        <!-- Botão Mobile -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Conteúdo Navbar -->
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <!-- Menu Principal -->
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="dashboard.html" id="navDashboard">
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="base.html" id="navBase">
+                        <i class="fas fa-code me-1"></i>Base
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- User Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center" 
+                        type="button" 
+                        data-bs-toggle="dropdown"
+                        id="userGreetingDropdown">
+                    <i class="fas fa-user me-2"></i>
+                    <span id="userGreeting">Carregando...</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="perfil.html" id="navProfile">
+                            <i class="fas fa-id-card me-1"></i>Meu Perfil
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" id="navLogout">
+                            <i class="fas fa-sign-out-alt me-1"></i>Sair
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,120 @@
+/* ========== KANBAN STYLES ========== */
+.kanban-board {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 10px 0;
+    min-height: 600px;
+}
+
+.kanban-column {
+    min-width: 320px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.kanban-column .column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+}
+
+.kanban-column .cards-container {
+    min-height: 500px;
+    transition: background-color 0.2s;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+.kanban-column .cards-container.bg-light {
+    background-color: #e9ecef !important;
+}
+
+.kanban-column .card {
+    cursor: move;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+}
+
+.kanban-column .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.kanban-column .card.opacity-50 {
+    opacity: 0.5;
+}
+
+.kanban-column .card .badge {
+    font-size: 0.7rem;
+}
+
+/* Cores de prioridade */
+.priority-alta { border-left: 4px solid #dc3545; }
+.priority-media { border-left: 4px solid #ffc107; }
+.priority-baixa { border-left: 4px solid #198754; }
+
+/* Scroll personalizado */
+.kanban-board::-webkit-scrollbar {
+    height: 8px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .kanban-board {
+        flex-direction: column;
+    }
+    
+    .kanban-column {
+        min-width: 100%;
+    }
+    
+    .kanban-column .cards-container {
+        min-height: 200px;
+    }
+}
+
+/* Cards de estatísticas */
+.stat-card {
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Animações */
+@keyframes cardAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kanban-column .card {
+    animation: cardAppear 0.3s ease-out;
+}

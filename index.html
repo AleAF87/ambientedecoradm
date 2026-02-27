@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambiente Decor Adm - Login</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo-container">
+                <img src="img/logo.png" alt="Ambiente Decor Adm" class="logo" id="logo" style="max-height: 80px;">
+            </div>
+            
+            <!-- PASSO 1: CPF -->
+            <div id="cpfStep" class="step active">
+                <h2 class="mb-4">Identificação</h2>
+                <div class="form-group mb-3">
+                    <label for="cpfInput" class="form-label">CPF (11 dígitos)</label>
+                    <input type="text" 
+                        id="cpfInput" 
+                        class="form-control" 
+                        placeholder="Digite seu CPF"
+                        maxlength="14"
+                        inputmode="numeric"
+                        style="text-align: center;">
+                    <div class="form-text">Digite apenas os 11 dígitos do seu CPF</div>
+                </div>
+                <button id="searchCpfBtn" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Verificar CPF
+                </button>
+                <div class="text-center mt-3">
+                    <button id="showRegisterBtn" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-user-plus me-2"></i>Cadastrar-se
+                    </button>
+                </div>
+            </div>
+
+            <!-- PASSO 2: Senha -->
+            <div id="passwordStep" class="step">
+                <h2 class="mb-4">Olá, <span id="userName"></span></h2>
+                <div class="form-group mb-3">
+                    <label for="passwordInput" class="form-label">Senha</label>
+                    <div class="input-group">
+                        <input type="password" 
+                            id="passwordInput" 
+                            class="form-control" 
+                            placeholder="Digite sua senha"
+                            style="text-align: center;">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button id="loginBtn" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                    </button>
+                    <button id="backBtn" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Link de recuperação de senha -->
+            <div class="mt-4 text-center">
+                <a href="#" id="forgotPassword" class="text-decoration-none d-none">
+                    <i class="fas fa-key me-1"></i>Esqueci minha senha
+                </a>
+            </div>
+
+            <!-- Alertas -->
+            <div class="alert alert-danger mt-3 d-none" id="errorAlert"></div>
+            <div class="alert alert-info mt-3 d-none" id="infoAlert"></div>
+            
+            <!-- Rodapé -->
+            <div class="text-center mt-4">
+                <small class="text-muted">Ambiente Decor Adm - Sistema de Gestão</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CADASTRO -->
+    <div id="registerModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal">&times;</span>
+            <h2 class="mb-4">Criar Nova Conta</h2>
+            
+            <form id="registerForm">
+                <!-- Validação CPF em tempo real -->
+                <div class="form-group mb-3">
+                    <label for="registerCpf" class="form-label">CPF *</label>
+                    <div class="input-group">
+                        <input type="text" 
+                            id="registerCpf" 
+                            class="form-control" 
+                            placeholder="000.000.000-00"
+                            maxlength="14"
+                            required>
+                        <span class="input-group-text" id="cpfValidationIcon">
+                            <i class="fas fa-spinner fa-spin d-none" id="cpfSpinner"></i>
+                        </span>
+                    </div>
+                    <div class="form-text" id="cpfStatus"></div>
+                </div>
+
+                <!-- Nome completo -->
+                <div class="form-group mb-3">
+                    <label for="registerNome" class="form-label">Nome Completo *</label>
+                    <input type="text" id="registerNome" class="form-control" required disabled>
+                </div>
+
+                <!-- Data de nascimento com calendário customizado -->
+                <div class="form-group mb-3">
+                    <label class="form-label">Data de Nascimento *</label>
+                    <div class="custom-date-input">
+                        <input type="text" 
+                            id="registerDataNasc" 
+                            class="form-control date-input" 
+                            placeholder="DD/MM/AAAA"
+                            maxlength="10"
+                            required disabled>
+                        <button type="button" class="btn btn-outline-secondary calendar-trigger" id="openCalendarBtn" disabled>
+                            <i class="fas fa-calendar-alt"></i>
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Digite ou clique no calendário para selecionar</small>
+                </div>
+
+                <!-- Celular com máscara -->
+                <div class="form-group mb-3">
+                    <label for="registerCelular" class="form-label">Celular *</label>
+                    <input type="text" id="registerCelular" class="form-control" placeholder="(00) 00000-0000" maxlength="15" required disabled>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group mb-3">
+                    <label for="registerEmail" class="form-label">E-mail *</label>
+                    <input type="email" id="registerEmail" class="form-control" required disabled>
+                </div>
+
+                <!-- Senha -->
+                <div class="form-group mb-3">
+                    <label for="registerSenha" class="form-label">Senha *</label>
+                    <input type="password" id="registerSenha" class="form-control" required disabled>
+                    <div class="password-requirements mt-2" id="passwordRequirements">
+                        <small class="d-block" id="reqLength">❌ Mínimo 8 caracteres</small>
+                        <small class="d-block" id="reqUpper">❌ 1 letra maiúscula</small>
+                        <small class="d-block" id="reqLower">❌ 1 letra minúscula</small>
+                        <small class="d-block" id="reqNumber">❌ 1 número</small>
+                        <small class="d-block" id="reqSpecial">❌ 1 caractere especial</small>
+                    </div>
+                </div>
+
+                <!-- Confirmar senha -->
+                <div class="form-group mb-3">
+                    <label for="registerConfirmarSenha" class="form-label">Confirmar Senha *</label>
+                    <input type="password" id="registerConfirmarSenha" class="form-control" required disabled>
+                    <small class="text-danger d-none" id="passwordMismatch">As senhas não conferem</small>
+                    <small class="text-success d-none" id="passwordMatch">✓ Senhas conferem</small>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" onclick="fecharModalRegistro()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnCriarConta" disabled>Criar Conta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DO CALENDÁRIO -->
+    <div id="calendarModal" class="modal calendar-modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharCalendarModal()">&times;</span>
+            <h3 class="mb-4">Selecione a Data</h3>
+            <div id="calendar-container"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/index.js"></script>
+</body>
+</html>
