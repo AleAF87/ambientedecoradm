@@ -55,22 +55,49 @@ export async function initDashboard() {
 function carregarOrdensServico() {
     const ordensRef = ref(database, 'ordensServico');
     
-    onValue(ordensRef, (snapshot) => {
-        if (snapshot.exists()) {
-            const dados = snapshot.val();
-            ordensServico = Object.keys(dados).map(key => ({
-                id: key,
-                ...dados[key]
-            }));
-        } else {
-            // Dados iniciais para teste
-            ordensServico = gerarDadosIniciais();
-            salvarDadosIniciais();
+    onValue(
+        ordensRef,
+        (snapshot) => {
+            if (snapshot.exists()) {
+                const dados = snapshot.val();
+                ordensServico = Object.keys(dados).map(key => ({
+                    id: key,
+                    ...dados[key]
+                }));
+            } else {
+                // Dados iniciais para teste
+                ordensServico = gerarDadosIniciais();
+                salvarDadosIniciais();
+            }
+            
+            renderizarKanban();
+            atualizarEstatisticas();
+        },
+        (error) => {
+            console.error('❌ Erro ao carregar ordens de serviço do Firebase:', error);
+            ordensServico = [];
+            renderizarErroCarregamento(error);
         }
-        
-        renderizarKanban();
-        atualizarEstatisticas();
-    });
+    );
+}
+
+function renderizarErroCarregamento(error) {
+    const contentDiv = document.getElementById('dashboard-content');
+    if (!contentDiv) return;
+
+    contentDiv.innerHTML = `
+        <div class="alert alert-danger mb-0" role="alert">
+            <h5 class="alert-heading mb-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Não foi possível carregar os dados do Firebase
+            </h5>
+            <p class="mb-2">${error?.message || 'Erro desconhecido ao buscar dados.'}</p>
+            <hr>
+            <button class="btn btn-outline-danger btn-sm" onclick="window.location.reload()">
+                <i class="fas fa-redo me-1"></i>Tentar novamente
+            </button>
+        </div>
+    `;  
 }
 
 // Gerar dados iniciais para teste

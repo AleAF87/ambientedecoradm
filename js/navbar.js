@@ -127,7 +127,6 @@ function highlightMenu() {
         if (href === currentPage || 
             (currentPage.includes('orcamentos') && href.includes('orcamentos')) ||
             (currentPage.includes('dashboard') && href.includes('dashboard')) ||
-            (currentPage.includes('base') && href.includes('base')) ||
             (currentPage.includes('perfil') && href.includes('perfil'))) {
             
             link.classList.add('active');
@@ -268,7 +267,6 @@ window.updateNavbarActiveMenu = function(pageUrl) {
         if (href === pageUrl || 
             (pageUrl.includes('orcamentos') && href.includes('orcamentos')) ||
             (pageUrl.includes('dashboard') && href.includes('dashboard')) ||
-            (pageUrl.includes('base') && href.includes('base')) ||
             (pageUrl.includes('perfil') && href.includes('perfil'))) {
             
             link.classList.add('active');
