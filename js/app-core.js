@@ -9,7 +9,7 @@ class AppCore {
             return null;
         }
         
-        this.currentPage = 'dashboard';
+        this.currentPage = 'dashboard.html';
     }
     
     async init() {
@@ -18,11 +18,10 @@ class AppCore {
         }
         
         try {
-            // checkAuth retorna objeto com userData e cpf
             const result = await checkAuth(3);
             
             const userData = result.userData;
-            const cpf = result.cpf; // APENAS CPF
+            const cpf = result.cpf;
             
             console.log('📦 Dados recebidos:', { 
                 nome: userData.nome, 
@@ -30,7 +29,6 @@ class AppCore {
                 cpf: cpf 
             });
             
-            // SALVAR APENAS CPF
             sessionStorage.setItem('userCPF', cpf);
             sessionStorage.setItem('userName', userData.nome);
             sessionStorage.setItem('userNivel', userData.nivel || 3);
@@ -181,7 +179,8 @@ class AppCore {
             
             const html = await response.text();
             
-            if (pageUrl === 'base.html' || pageUrl === 'perfil.html') {
+            if (pageUrl === 'base.html' || pageUrl === 'perfil.html' || 
+                pageUrl === 'orcamentos.html' || pageUrl === 'orcamentos-edit.html') {
                 await this.loadSpecialPage(html, pageUrl);
             } else {
                 const pageContent = this.extractContent(html, pageUrl);
@@ -193,7 +192,10 @@ class AppCore {
             }
             
             this.currentPage = pageUrl;
-            this.updateActiveNav(pageUrl);
+            
+            if (window.updateNavbarActiveMenu) {
+                window.updateNavbarActiveMenu(pageUrl);
+            }
             
         } catch (error) {
             console.error(`❌ Erro ao carregar ${pageUrl}:`, error);
@@ -207,69 +209,102 @@ class AppCore {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         
-        const navbar = doc.querySelector('#navbar');
-        if (navbar) navbar.remove();
+        // Remover scripts duplicados
+        const scriptsToRemove = doc.querySelectorAll('script[src*="firebase"], script[src*="auth"], script[src*="jquery"]');
+        scriptsToRemove.forEach(el => el.remove());
         
-        const mainContent = doc.querySelector('main');
-        if (mainContent) {
-            contentDiv.innerHTML = mainContent.innerHTML;
-            
-            if (pageUrl === 'base.html') {
-                await this.loadBaseScript();
-            } else if (pageUrl === 'perfil.html') {
-                await this.loadPerfilScript();
+        // Remover links de CSS duplicados
+        const linksToRemove = doc.querySelectorAll('link[href*="bootstrap"]');
+        linksToRemove.forEach(el => el.remove());
+        
+        // Extrair apenas o conteúdo que não é navbar
+        const tempDiv = document.createElement('div');
+        
+        Array.from(doc.body.children).forEach(child => {
+            if (child.id !== 'navbar' && 
+                child.tagName !== 'SCRIPT' && 
+                !child.classList?.contains('navbar')) {
+                tempDiv.appendChild(child.cloneNode(true));
             }
-        } else {
-            contentDiv.innerHTML = '<div class="alert alert-danger">Erro: Conteúdo não encontrado</div>';
+        });
+        
+        contentDiv.innerHTML = tempDiv.innerHTML;
+        
+        // Carregar scripts específicos
+        if (pageUrl === 'base.html') {
+            await this.loadBaseScript();
+        } else if (pageUrl === 'perfil.html') {
+            await this.loadPerfilScript();
+        } else if (pageUrl === 'orcamentos.html') {
+            await this.loadOrcamentosScript();
+        } else if (pageUrl === 'orcamentos-edit.html') {
+            await this.loadOrcamentosEditScript();
         }
     }
     
     async loadBaseScript() {
         try {
             await new Promise(resolve => setTimeout(resolve, 200));
-            
             const baseModule = await import('./base.js');
-            
             if (baseModule && baseModule.initBaseSPA) {
                 await baseModule.initBaseSPA();
             } else if (baseModule && baseModule.initBase) {
                 await baseModule.initBase();
             }
-            
         } catch (error) {
             console.error('❌ Erro ao carregar base:', error);
-            this.showError(error);
         }
     }
     
     async loadPerfilScript() {
         try {
             await new Promise(resolve => setTimeout(resolve, 200));
-            
             const perfilModule = await import('./perfil.js');
-            
             if (perfilModule && perfilModule.initPerfilSPA) {
                 await perfilModule.initPerfilSPA();
             } else if (perfilModule && perfilModule.initPerfil) {
                 await perfilModule.initPerfil();
             }
-            
         } catch (error) {
             console.error('❌ Erro ao carregar perfil:', error);
-            this.showError(error);
+        }
+    }
+    
+    async loadOrcamentosScript() {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const orcamentosModule = await import('./orcamentos.js');
+            if (orcamentosModule && typeof orcamentosModule.init === 'function') {
+                await orcamentosModule.init();
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar orcamentos:', error);
+        }
+    }
+    
+    async loadOrcamentosEditScript() {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const urlParams = new URLSearchParams(window.location.search);
+            const orcamentoId = urlParams.get('id');
+            
+            const orcamentosEditModule = await import('./orcamentos-edit.js');
+            if (orcamentosEditModule && typeof orcamentosEditModule.init === 'function') {
+                await orcamentosEditModule.init(orcamentoId);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar orcamentos-edit:', error);
         }
     }
     
     async loadDashboardScript() {
         try {
             const dashboardModule = await import('./dashboard.js');
-            
             if (dashboardModule && dashboardModule.initDashboard) {
                 await dashboardModule.initDashboard();
             } else {
                 this.executeDashboardFallback();
             }
-            
         } catch (error) {
             console.error('❌ Erro ao carregar dashboard:', error);
             this.executeDashboardFallback();

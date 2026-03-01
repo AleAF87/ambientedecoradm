@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamentos - Ambiente Decor Adm</title>
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="navbar"></div>
+    
+    <main class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h4 class="mb-0">
+                            <i class="fas fa-file-invoice me-2 text-marrom-escuro"></i>
+                            Orçamentos
+                        </h4>
+                        <button class="btn btn-primary" onclick="window.app.loadPage('orcamentos-edit.html')">
+                            <i class="fas fa-plus me-1"></i>
+                            Novo Orçamento
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filtros e Busca -->
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-2">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-marrom-claro">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="searchInput" 
+                                           placeholder="Buscar por cliente...">
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <select class="form-select" id="statusFilter">
+                                    <option value="">Todos os status</option>
+                                    <option value="fazer_visita">🚪 Fazer Visita</option>
+                                    <option value="fazer_orcamento">📝 Fazer Orçamento</option>
+                                    <option value="medicao_fina">📏 Medição Fina</option>
+                                    <option value="producao">🔨 Produção</option>
+                                    <option value="montagem">🔧 Montagem</option>
+                                    <option value="concluido">✅ Concluído</option>
+                                    <option value="geladeira">❄️ Geladeira</option>
+                                    <option value="cancelado">🚫 Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <select class="form-select" id="saldoFilter">
+                                    <option value="">Todos</option>
+                                    <option value="pendente">💰 Com saldo pendente</option>
+                                    <option value="quitado">✅ Quitados</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <button class="btn btn-outline-secondary w-100" onclick="limparFiltros()">
+                                    <i class="fas fa-eraser me-1"></i>Limpar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabela de Orçamentos -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Cliente / Empresa</th>
+                                        <th>Descrição</th>
+                                        <th>Status</th>
+                                        <th>Valor</th>
+                                        <th>Saldo</th>
+                                        <th>Data Contato</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orcamentosTableBody">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <div class="spinner-border text-marrom-escuro"></div>
+                                            <p class="mt-2">Carregando orçamentos...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginação -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="text-muted" id="paginacaoInfo">
+                                Mostrando 0 de 0 orçamentos
+                            </div>
+                            <nav>
+                                <ul class="pagination" id="paginacao">
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" tabindex="-1">Anterior</a>
+                                    </li>
+                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#">Próximo</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth-check.js"></script>
+    <script type="module" src="js/orcamentos.js"></script>
+</body>
+</html>

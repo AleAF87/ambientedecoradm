@@ -1,5 +1,5 @@
 <!-- components/navbar.html - Ambiente Decor Adm -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm fixed-top">
+<nav class="navbar navbar-expand-lg navbar-dark bg-marrom-escuro shadow-sm fixed-top">
     <div class="container-fluid">
         <!-- Logo -->
         <div class="navbar-brand fw-bold d-flex align-items-center">
@@ -23,6 +23,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="orcamentos.html" id="navOrcamentos">
+                        <i class="fas fa-file-invoice me-1"></i>Orçamentos
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="base.html" id="navBase">
                         <i class="fas fa-code me-1"></i>Base
                     </a>
@@ -34,7 +39,8 @@
                 <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center" 
                         type="button" 
                         data-bs-toggle="dropdown"
-                        id="userGreetingDropdown">
+                        id="userGreetingDropdown"
+                        style="border-color: var(--marrom-claro);">
                     <i class="fas fa-user me-2"></i>
                     <span id="userGreeting">Carregando...</span>
                 </button>
