@@ -8,6 +8,7 @@ let todosOrcamentos = [];
 let orcamentosFiltrados = [];
 let paginaAtual = 1;
 const ITENS_POR_PAGINA = 10;
+let inicializado = false;
 
 // Status com cores e ícones
 const STATUS_CONFIG = {
@@ -21,12 +22,25 @@ const STATUS_CONFIG = {
     'cancelado': { icon: '🚫', label: 'Cancelado', color: '#dc3545' }
 };
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', async function() {
-    await checkAuth(3);
-    carregarOrcamentos();
-    configurarFiltros();
-});
+// Inicialização (compatível com página direta e SPA)
+export async function init() {
+    if (inicializado) return;
+    inicializado = true;
+
+    try {
+        await checkAuth(3);
+        carregarOrcamentos();
+        configurarFiltros();
+    } catch (error) {
+        mostrarErroCarregamento('Não foi possível validar sua sessão. Faça login novamente.');
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Carregar orçamentos do Firebase (do nó statusOrc para economizar)
 function carregarOrcamentos() {
@@ -38,7 +52,11 @@ function carregarOrcamentos() {
             todosOrcamentos = Object.keys(dados).map(key => ({
                 id: key,
                 ...dados[key]
-            })).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+            })).sort((a, b) => {
+                const dataA = a?.criadoEm || '';
+                const dataB = b?.criadoEm || '';
+                return String(dataB).localeCompare(String(dataA));
+            });
             
             orcamentosFiltrados = [...todosOrcamentos];
             atualizarTabela();
@@ -56,7 +74,21 @@ function carregarOrcamentos() {
                 </tr>
             `;
         }
+    }, (error) => {
+        console.error('❌ Erro ao carregar orçamentos:', error);
+        mostrarErroCarregamento('Erro ao carregar orçamentos do Firebase. Verifique as permissões e tente novamente.');
     });
+}
+
+function mostrarErroCarregamento(mensagem) {
+    document.getElementById('orcamentosTableBody').innerHTML = `
+        <tr>
+            <td colspan="8" class="text-center py-4 text-danger">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p class="mb-0">${mensagem}</p>
+            </td>
+        </tr>
+    `;
 }
 
 // Configurar filtros
