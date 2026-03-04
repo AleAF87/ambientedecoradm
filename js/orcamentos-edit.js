@@ -1,6 +1,6 @@
 // js/orcamentos-edit.js - Criação/Edição de Orçamentos
 import { database, auth } from './firebase-config.js';
-import { ref, set, update, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { ref, set, update, get, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { uploadImagemCloudinary, deletarImagemCloudinary } from './cloudinary-config.js';
 import { checkAuth } from './auth-check.js';
@@ -22,6 +22,7 @@ const modeloDadosOrcamento = {
         totalPagamentos: 0,
         valorLiquido: 0,
         saldo: 0,
+        percentualLucro: 0,
         alteracoesValor: {},
         custos: {},
         pagamentos: {}
@@ -34,6 +35,40 @@ const modeloDadosOrcamento = {
 
 // Dados do orçamento em memória
 let dadosOrcamento = structuredClone(modeloDadosOrcamento);
+
+// Função de máscara para moeda
+function mascaraMoeda(input) {
+    let valor = input.value.replace(/\D/g, '');
+    if (valor === '') {
+        input.value = '0,00';
+        return;
+    }
+    
+    // Garantir que tenha pelo menos 3 dígitos (para centavos)
+    while (valor.length < 3) {
+        valor = '0' + valor;
+    }
+    
+    // Separar os centavos (últimos 2 dígitos)
+    let centavos = valor.slice(-2);
+    let inteiros = valor.slice(0, -2);
+    
+    // Adicionar pontos a cada 3 dígitos nos inteiros
+    inteiros = inteiros.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    
+    // Juntar com vírgula e centavos
+    input.value = inteiros + ',' + centavos;
+}
+
+// Converter string monetária para número
+function converterMoedaParaNumero(valor) {
+    if (!valor) return 0;
+    if (typeof valor === 'number') return valor;
+    
+    // Remove pontos (separadores de milhar) e substitui vírgula por ponto
+    const valorLimpo = valor.replace(/\./g, '').replace(',', '.');
+    return parseFloat(valorLimpo) || 0;
+}
 
 // Função de inicialização (chamada pelo SPA)
 export async function init(editId = null) {
@@ -57,9 +92,26 @@ export async function init(editId = null) {
         document.getElementById('dataContato').value = new Date().toISOString().split('T')[0];
     }
     
+    // Carregar estados e municípios
+    await carregarEstados();
+    await carregarMunicipios();
+    
     // Configurar eventos
     document.getElementById('orcamentoForm').onsubmit = salvarOrcamento;
-    document.getElementById('valorInicial').oninput = atualizarResumoFinanceiro;
+    
+    // Evento para o valorInicial - input (enquanto digita)
+    document.getElementById('valorInicial').addEventListener('input', function() {
+        mascaraMoeda(this);
+        atualizarResumoFinanceiro();
+    });
+    
+    // Evento para o valorInicial - blur (quando sai do campo)
+    document.getElementById('valorInicial').addEventListener('blur', function() {
+        if (this.value === '' || this.value === '0,00') {
+            this.value = '0,00';
+        }
+        atualizarResumoFinanceiro();
+    });
     
     // Configurar máscara CPF/CNPJ
     document.getElementById('cpfCnpj').onblur = function() {
@@ -84,18 +136,181 @@ export async function init(editId = null) {
         this.value = this.value.replace(/\D/g, '');
     };
     
+    // Configurar máscara CEP
+    document.getElementById('cep').oninput = function() {
+        let cep = this.value.replace(/\D/g, '');
+        if (cep.length > 5) {
+            cep = cep.substring(0, 5) + '-' + cep.substring(5, 8);
+        }
+        this.value = cep;
+    };
+    
+    // Event listener para selects
+    document.addEventListener('change', function(e) {
+        if (e.target.id === 'estado' && e.target.value === 'adicionar') {
+            e.target.value = ''; // Limpar seleção
+            const modal = new bootstrap.Modal(document.getElementById('modalAdicionarEstado'));
+            modal.show();
+        } else if (e.target.id === 'municipio' && e.target.value === 'adicionar') {
+            e.target.value = ''; // Limpar seleção
+            const modal = new bootstrap.Modal(document.getElementById('modalAdicionarMunicipio'));
+            modal.show();
+        }
+    });
+    
     atualizarResumoFinanceiro();
 }
+
+// Carregar estados do Firebase
+async function carregarEstados() {
+    try {
+        const estadosRef = ref(database, 'estadoUF');
+        const snapshot = await get(estadosRef);
+        const selectEstado = document.getElementById('estado');
+        
+        if (selectEstado) {
+            selectEstado.innerHTML = '<option value="">Selecione...</option>';
+            
+            if (snapshot.exists()) {
+                const estados = snapshot.val();
+                // Ordenar as UFs alfabeticamente
+                const ufsOrdenadas = Object.keys(estados).sort();
+                
+                ufsOrdenadas.forEach(uf => {
+                    selectEstado.innerHTML += `<option value="${uf}">${uf}</option>`;
+                });
+            }
+            
+            // Adicionar opção "Adicionar" no final
+            selectEstado.innerHTML += '<option value="adicionar">+ Adicionar Estado</option>';
+        }
+    } catch (error) {
+        console.error('Erro ao carregar estados:', error);
+        // Garantir que a opção "Adicionar" apareça mesmo com erro
+        const selectEstado = document.getElementById('estado');
+        if (selectEstado) {
+            selectEstado.innerHTML = '<option value="">Selecione...</option>';
+            selectEstado.innerHTML += '<option value="adicionar">+ Adicionar Estado</option>';
+        }
+    }
+}
+
+// Carregar municípios do Firebase
+async function carregarMunicipios() {
+    try {
+        const municipiosRef = ref(database, 'municipio');
+        const snapshot = await get(municipiosRef);
+        const selectMunicipio = document.getElementById('municipio');
+        
+        if (selectMunicipio) {
+            selectMunicipio.innerHTML = '<option value="">Selecione...</option>';
+            
+            if (snapshot.exists()) {
+                const municipios = snapshot.val();
+                const listaMunicipios = [];
+                
+                // Extrair todos os municípios do Firebase
+                Object.values(municipios).forEach(item => {
+                    if (typeof item === 'object') {
+                        Object.values(item).forEach(valor => {
+                            if (typeof valor === 'string') {
+                                listaMunicipios.push(valor);
+                            }
+                        });
+                    } else if (typeof item === 'string') {
+                        listaMunicipios.push(item);
+                    }
+                });
+                
+                // Ordenar municípios alfabeticamente
+                listaMunicipios.sort();
+                
+                // Adicionar ao select
+                listaMunicipios.forEach(municipio => {
+                    selectMunicipio.innerHTML += `<option value="${municipio}">${municipio}</option>`;
+                });
+            }
+            
+            // Adicionar opção "Adicionar" no final
+            selectMunicipio.innerHTML += '<option value="adicionar">+ Adicionar Município</option>';
+        }
+    } catch (error) {
+        console.error('Erro ao carregar municípios:', error);
+        const selectMunicipio = document.getElementById('municipio');
+        if (selectMunicipio) {
+            selectMunicipio.innerHTML = '<option value="">Selecione...</option>';
+            selectMunicipio.innerHTML += '<option value="adicionar">+ Adicionar Município</option>';
+        }
+    }
+}
+
+// Adicionar novo estado
+window.adicionarEstado = async function() {
+    const novaUF = document.getElementById('novaUF').value.trim().toUpperCase();
+    
+    if (!novaUF) {
+        alert('Digite a UF do estado');
+        return;
+    }
+    
+    if (novaUF.length !== 2) {
+        alert('A UF deve ter exatamente 2 caracteres');
+        return;
+    }
+    
+    try {
+        const estadoRef = ref(database, `estadoUF/${novaUF}`);
+        await set(estadoRef, novaUF);
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarEstado'));
+        if (modal) modal.hide();
+        
+        document.getElementById('novaUF').value = '';
+        
+        await carregarEstados();
+        document.getElementById('estado').value = novaUF;
+        
+    } catch (error) {
+        console.error('Erro ao adicionar estado:', error);
+        alert('Erro ao adicionar estado');
+    }
+};
+
+// Adicionar novo município
+window.adicionarMunicipio = async function() {
+    const novoMunicipio = document.getElementById('novoMunicipio').value.trim();
+    
+    if (!novoMunicipio) {
+        alert('Digite o nome do município');
+        return;
+    }
+    
+    try {
+        const municipiosRef = ref(database, 'municipio');
+        const novoId = push(municipiosRef).key;
+        await set(ref(database, `municipio/${novoId}`), novoMunicipio);
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarMunicipio'));
+        if (modal) modal.hide();
+        
+        document.getElementById('novoMunicipio').value = '';
+        
+        await carregarMunicipios();
+        document.getElementById('municipio').value = novoMunicipio;
+        
+    } catch (error) {
+        console.error('Erro ao adicionar município:', error);
+        alert('Erro ao adicionar município');
+    }
+};
 
 // Máscara para CPF/CNPJ
 function aplicarMascaraCPFCNPJ(valor) {
     valor = valor.replace(/\D/g, '');
     
     if (valor.length <= 11) {
-        // CPF: 000.000.000-00
         return valor.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     } else {
-        // CNPJ: 00.000.000/0000-00
         return valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
 }
@@ -104,7 +319,6 @@ function aplicarMascaraCPFCNPJ(valor) {
 function abrirModal(modalId) {
     const modalElement = document.getElementById(modalId);
     if (modalElement) {
-        // Garantir que não haja modais presos
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
@@ -130,11 +344,9 @@ function fecharModal(modalId) {
 // Carregar orçamento para edição
 async function carregarOrcamento(id) {
     try {
-        // Tentar primeiro com "orcamentos" (com s)
         let orcamentoRef = ref(database, `orcamentos/${id}`);
         let snapshot = await get(orcamentoRef);
         
-        // Se não encontrar, tentar sem s
         if (!snapshot.exists()) {
             orcamentoRef = ref(database, `orcamento/${id}`);
             snapshot = await get(orcamentoRef);
@@ -157,6 +369,26 @@ async function carregarOrcamento(id) {
         // Preencher formulário
         document.getElementById('clienteEmpresa').value = dadosOrcamento.projeto?.clienteEmpresa || '';
         document.getElementById('cpfCnpj').value = dadosOrcamento.projeto?.cpfCnpj || '';
+        
+        // Preencher endereço
+        document.getElementById('logradouro').value = dadosOrcamento.endereco?.logradouro || '';
+        document.getElementById('numero').value = dadosOrcamento.endereco?.numero || '';
+        document.getElementById('complemento').value = dadosOrcamento.endereco?.complemento || '';
+        document.getElementById('bairro').value = dadosOrcamento.endereco?.bairro || '';
+        document.getElementById('cep').value = dadosOrcamento.endereco?.cep || '';
+        
+        // Carregar estados e municípios antes de selecionar os valores
+        await carregarEstados();
+        await carregarMunicipios();
+        
+        if (dadosOrcamento.endereco?.estado) {
+            document.getElementById('estado').value = dadosOrcamento.endereco.estado;
+        }
+        
+        if (dadosOrcamento.endereco?.municipio) {
+            document.getElementById('municipio').value = dadosOrcamento.endereco.municipio;
+        }
+        
         document.getElementById('descricao').value = dadosOrcamento.projeto?.descricao || '';
         
         document.getElementById('dataContato').value = dadosOrcamento.datas?.dataContato || '';
@@ -167,12 +399,15 @@ async function carregarOrcamento(id) {
         document.getElementById('dataInicioMontagem').value = dadosOrcamento.datas?.dataInicioMontagem || '';
         document.getElementById('dataMontagemConcluida').value = dadosOrcamento.datas?.dataMontagemConcluida || '';
         
-        document.getElementById('valorInicial').value = dadosOrcamento.financeiro?.valorInicial || 0;
+        const valorInicial = dadosOrcamento.financeiro?.valorInicial || 0;
+        document.getElementById('valorInicial').value = valorInicial.toLocaleString('pt-BR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        });
         
         document.getElementById('status').value = dadosOrcamento.status || 'producao';
         document.getElementById('observacoes').value = dadosOrcamento.observacoes || '';
         
-        // Atualizar listas
         atualizarTabelaAlteracoes();
         atualizarTabelaCustos();
         atualizarTabelaPagamentos();
@@ -185,7 +420,7 @@ async function carregarOrcamento(id) {
     }
 }
 
-// Gerar ID do orçamento (AAMMDDHHMM)
+// Gerar ID do orçamento
 function gerarIdOrcamento() {
     const agora = new Date();
     const ano = agora.getFullYear().toString().slice(-2);
@@ -197,7 +432,7 @@ function gerarIdOrcamento() {
     return `${ano}${mes}${dia}${hora}${min}${seg}`;
 }
 
-// Gerar ID para subitens (prefixo + AAMMDDHHMM)
+// Gerar ID para subitens
 function gerarSubItemId(prefixo) {
     const agora = new Date();
     const ano = agora.getFullYear().toString().slice(-2);
@@ -213,7 +448,6 @@ function gerarSubItemId(prefixo) {
 async function salvarOrcamento(e) {
     e.preventDefault();
     
-    // Validar campos obrigatórios
     const clienteEmpresa = document.getElementById('clienteEmpresa').value;
     const descricao = document.getElementById('descricao').value;
     const dataContato = document.getElementById('dataContato').value;
@@ -231,24 +465,33 @@ async function salvarOrcamento(e) {
         await fazerUploadAnexosPendentes();
 
         const agora = new Date().toISOString();
-        const valorInicial = parseFloat(document.getElementById('valorInicial').value) || 0;
-        
-        // Calcular totais
+        const valorInicial = converterMoedaParaNumero(document.getElementById('valorInicial').value);
+
         const totalAlteracoes = calcularTotalAlteracoes();
         const totalCustos = calcularTotalCustos();
         const totalPagamentos = calcularTotalPagamentos();
-        
+
         const valorBruto = valorInicial + totalAlteracoes;
         const valorLiquido = valorBruto - totalCustos;
-        const saldo = valorLiquido - totalPagamentos;
+        const saldo = valorBruto - totalPagamentos;
+        const percentualLucro = valorBruto > 0 ? (valorLiquido / valorBruto) * 100 : 0;
+
         
-        // Preparar dados para salvar
         const dadosParaSalvar = {
             id: modoEdicao ? orcamentoId : gerarIdOrcamento(),
             projeto: {
                 clienteEmpresa,
                 cpfCnpj: document.getElementById('cpfCnpj').value,
                 descricao
+            },
+            endereco: {
+                logradouro: document.getElementById('logradouro').value,
+                numero: document.getElementById('numero').value,
+                complemento: document.getElementById('complemento').value,
+                bairro: document.getElementById('bairro').value,
+                municipio: document.getElementById('municipio').value,
+                estado: document.getElementById('estado').value,
+                cep: document.getElementById('cep').value
             },
             datas: {
                 dataContato,
@@ -266,6 +509,7 @@ async function salvarOrcamento(e) {
                 totalPagamentos,
                 valorLiquido,
                 saldo,
+                percentualLucro,
                 alteracoesValor: dadosOrcamento.financeiro.alteracoesValor || {},
                 custos: dadosOrcamento.financeiro.custos || {},
                 pagamentos: dadosOrcamento.financeiro.pagamentos || {}
@@ -279,7 +523,6 @@ async function salvarOrcamento(e) {
             alteradoEm: agora
         };
         
-        // Se for novo, adicionar criadoEm
         if (!modoEdicao) {
             dadosParaSalvar.criadoEm = agora;
             
@@ -302,14 +545,12 @@ async function salvarOrcamento(e) {
             };
         }
         
-        // Salvar no Firebase (tentar com e sem s)
         try {
             await set(ref(database, `orcamentos/${dadosParaSalvar.id}`), dadosParaSalvar);
         } catch (e) {
             await set(ref(database, `orcamento/${dadosParaSalvar.id}`), dadosParaSalvar);
         }
         
-        // Salvar status resumido
         const statusData = {
             id: dadosParaSalvar.id,
             clienteEmpresa,
@@ -335,7 +576,6 @@ async function salvarOrcamento(e) {
         
         alert('Orçamento salvo com sucesso!');
         
-        // Redirecionar para listagem
         if (window.app && window.app.loadPage) {
             window.app.loadPage('orcamentos.html');
         } else {
@@ -366,7 +606,11 @@ window.abrirModalAlteracao = function(editarId = null) {
         document.getElementById('alteracaoEditando').value = editarId;
         document.getElementById('alteracaoData').value = alteracao.data;
         document.getElementById('alteracaoTipo').value = alteracao.tipo;
-        document.getElementById('alteracaoValor').value = Math.abs(alteracao.valor);
+        const valorAbsoluto = Math.abs(alteracao.valor);
+        document.getElementById('alteracaoValor').value = valorAbsoluto.toLocaleString('pt-BR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        }).replace('.', ',');
         document.getElementById('alteracaoDescricao').value = alteracao.descricao;
     } else {
         document.getElementById('alteracaoEditando').value = '';
@@ -383,7 +627,7 @@ window.salvarAlteracao = function() {
     const id = document.getElementById('alteracaoEditando').value;
     const data = document.getElementById('alteracaoData').value;
     const tipo = document.getElementById('alteracaoTipo').value;
-    const valor = parseFloat(document.getElementById('alteracaoValor').value);
+    const valor = converterMoedaParaNumero(document.getElementById('alteracaoValor').value);
     const descricao = document.getElementById('alteracaoDescricao').value;
     
     if (!data || !valor || !descricao) {
@@ -448,7 +692,7 @@ function atualizarTabelaAlteracoes() {
                         ${alt.tipo === 'acrescimo' ? '+' : '-'}
                     </span>
                 </td>
-                <td>R$ ${Math.abs(alt.valor).toFixed(2)}</td>
+                <td>${formatarMoeda(Math.abs(alt.valor))}</td>
                 <td>${alt.descricao}</td>
                 <td>
                     <button class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalAlteracao('${id}')">
@@ -468,7 +712,10 @@ window.abrirModalCusto = function(editarId = null) {
         const custo = dadosOrcamento.financeiro.custos[editarId];
         document.getElementById('custoEditando').value = editarId;
         document.getElementById('custoData').value = custo.data;
-        document.getElementById('custoValor').value = custo.valor;
+        document.getElementById('custoValor').value = custo.valor.toLocaleString('pt-BR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        }).replace('.', ',');
         document.getElementById('custoDescricao').value = custo.descricao;
     } else {
         document.getElementById('custoEditando').value = '';
@@ -483,7 +730,7 @@ window.abrirModalCusto = function(editarId = null) {
 window.salvarCusto = function() {
     const id = document.getElementById('custoEditando').value;
     const data = document.getElementById('custoData').value;
-    const valor = parseFloat(document.getElementById('custoValor').value);
+    const valor = converterMoedaParaNumero(document.getElementById('custoValor').value);
     const descricao = document.getElementById('custoDescricao').value;
     
     if (!data || !valor || !descricao) {
@@ -542,7 +789,7 @@ function atualizarTabelaCustos() {
         .map(([id, custo]) => `
             <tr>
                 <td>${formatarDataHora(custo.data)}</td>
-                <td>R$ ${custo.valor.toFixed(2)}</td>
+                <td>${formatarMoeda(custo.valor)}</td>
                 <td>${custo.descricao}</td>
                 <td>
                     <button class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalCusto('${id}')">
@@ -562,7 +809,10 @@ window.abrirModalPagamento = function(editarId = null) {
         const pagamento = dadosOrcamento.financeiro.pagamentos[editarId];
         document.getElementById('pagamentoEditando').value = editarId;
         document.getElementById('pagamentoData').value = pagamento.data;
-        document.getElementById('pagamentoValor').value = pagamento.valor;
+        document.getElementById('pagamentoValor').value = pagamento.valor.toLocaleString('pt-BR', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        }).replace('.', ',');
         document.getElementById('pagamentoDescricao').value = pagamento.descricao;
     } else {
         document.getElementById('pagamentoEditando').value = '';
@@ -577,7 +827,7 @@ window.abrirModalPagamento = function(editarId = null) {
 window.salvarPagamento = function() {
     const id = document.getElementById('pagamentoEditando').value;
     const data = document.getElementById('pagamentoData').value;
-    const valor = parseFloat(document.getElementById('pagamentoValor').value);
+    const valor = converterMoedaParaNumero(document.getElementById('pagamentoValor').value);
     const descricao = document.getElementById('pagamentoDescricao').value;
     
     if (!data || !valor || !descricao) {
@@ -636,7 +886,7 @@ function atualizarTabelaPagamentos() {
         .map(([id, pag]) => `
             <tr>
                 <td>${formatarDataHora(pag.data)}</td>
-                <td class="text-success fw-bold">R$ ${pag.valor.toFixed(2)}</td>
+                <td class="text-success fw-bold">${formatarMoeda(pag.valor)}</td>
                 <td>${pag.descricao}</td>
                 <td>
                     <button class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalPagamento('${id}')">
@@ -797,7 +1047,7 @@ function calcularTotalPagamentos() {
 }
 
 function atualizarResumoFinanceiro() {
-    const valorInicial = parseFloat(document.getElementById('valorInicial').value) || 0;
+    const valorInicial = converterMoedaParaNumero(document.getElementById('valorInicial').value);
     
     const totalAlteracoes = calcularTotalAlteracoes();
     const totalCustos = calcularTotalCustos();
@@ -805,23 +1055,38 @@ function atualizarResumoFinanceiro() {
     
     const valorBruto = valorInicial + totalAlteracoes;
     const valorLiquido = valorBruto - totalCustos;
-    const saldo = valorLiquido - totalPagamentos;
+    const saldo = valorBruto - totalPagamentos; // CORRIGIDO: Saldo = Valor Bruto - Total Pagamentos
+    const percentualLucro = valorBruto > 0 ? (valorLiquido / valorBruto) * 100 : 0;
     
-    document.getElementById('displayValorBruto').textContent = `R$ ${valorBruto.toFixed(2)}`;
-    document.getElementById('displayTotalCustos').textContent = `R$ ${totalCustos.toFixed(2)}`;
-    document.getElementById('displayTotalPagamentos').textContent = `R$ ${totalPagamentos.toFixed(2)}`;
-    document.getElementById('displayValorLiquido').textContent = `R$ ${valorLiquido.toFixed(2)}`;
+    document.getElementById('displayValorBruto').textContent = formatarMoeda(valorBruto);
+    document.getElementById('displayTotalAlteracoes').textContent = formatarMoeda(totalAlteracoes);
+    document.getElementById('displayTotalCustos').textContent = formatarMoeda(totalCustos);
+    document.getElementById('displayValorLiquido').textContent = formatarMoeda(valorLiquido);
+    
+    document.getElementById('displayPercentualLucro').textContent = percentualLucro.toFixed(1).replace('.', ',') + '%';
+    
+    document.getElementById('displayTotalPagamentos').textContent = formatarMoeda(totalPagamentos);
+    document.getElementById('displaySaldo').textContent = formatarMoeda(saldo);
     
     const saldoElement = document.getElementById('displaySaldo');
-    saldoElement.textContent = `R$ ${saldo.toFixed(2)}`;
-    
     if (saldo > 0) {
-        saldoElement.className = 'mb-0 text-warning';
+        saldoElement.className = 'mb-0 text-warning text-end';
     } else if (saldo < 0) {
-        saldoElement.className = 'mb-0 text-danger';
+        saldoElement.className = 'mb-0 text-danger text-end';
     } else {
-        saldoElement.className = 'mb-0 text-success';
+        saldoElement.className = 'mb-0 text-success text-end';
     }
+}
+
+
+// Função para formatar valores em moeda brasileira
+function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
 // ========== UTILITÁRIOS ==========
@@ -832,19 +1097,23 @@ function formatarDataHora(dataISO) {
 }
 
 // Exportar funções para o window
-window.abrirModalAlteracao = window.abrirModalAlteracao;
-window.salvarAlteracao = window.salvarAlteracao;
-window.excluirAlteracao = window.excluirAlteracao;
-window.abrirModalCusto = window.abrirModalCusto;
-window.salvarCusto = window.salvarCusto;
-window.excluirCusto = window.excluirCusto;
-window.abrirModalPagamento = window.abrirModalPagamento;
-window.salvarPagamento = window.salvarPagamento;
-window.excluirPagamento = window.excluirPagamento;
-window.abrirModalAnexo = window.abrirModalAnexo;
-window.uploadAnexo = window.uploadAnexo;
-window.excluirAnexo = window.excluirAnexo;
+window.abrirModalAlteracao = abrirModalAlteracao;
+window.salvarAlteracao = salvarAlteracao;
+window.excluirAlteracao = excluirAlteracao;
+window.abrirModalCusto = abrirModalCusto;
+window.salvarCusto = salvarCusto;
+window.excluirCusto = excluirCusto;
+window.abrirModalPagamento = abrirModalPagamento;
+window.salvarPagamento = salvarPagamento;
+window.excluirPagamento = excluirPagamento;
+window.abrirModalAnexo = abrirModalAnexo;
+window.uploadAnexo = uploadAnexo;
+window.excluirAnexo = excluirAnexo;
 window.atualizarResumoFinanceiro = atualizarResumoFinanceiro;
+window.adicionarEstado = adicionarEstado;
+window.adicionarMunicipio = adicionarMunicipio;
+window.cancelarEdicao = cancelarEdicao;
+window.mascaraMoeda = mascaraMoeda;
 
 // Inicialização automática quando a página é aberta fora do SPA
 if (!window.location.pathname.includes('app.html')) {
