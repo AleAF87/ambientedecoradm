@@ -167,7 +167,8 @@ class AppCore {
     
     async loadPage(pageUrl) {
         if (this.currentPage === pageUrl) return;
-        
+        const cleanPageUrl = pageUrl.split('?')[0];
+
         const contentDiv = document.getElementById('app-content');
         if (!contentDiv) return;
         
@@ -179,8 +180,8 @@ class AppCore {
             
             const html = await response.text();
             
-            if (pageUrl === 'base.html' || pageUrl === 'perfil.html' || 
-                pageUrl === 'orcamentos.html' || pageUrl === 'orcamentos-edit.html') {
+            if (cleanPageUrl === 'base.html' || cleanPageUrl === 'perfil.html' || 
+                cleanPageUrl === 'orcamentos.html' || cleanPageUrl === 'orcamentos-edit.html') {
                 await this.loadSpecialPage(html, pageUrl);
             } else {
                 const pageContent = this.extractContent(html, pageUrl);
@@ -231,14 +232,16 @@ class AppCore {
         contentDiv.innerHTML = tempDiv.innerHTML;
         
         // Carregar scripts específicos
-        if (pageUrl === 'base.html') {
+        const cleanPageUrl = pageUrl.split('?')[0];
+
+        if (cleanPageUrl === 'base.html') {
             await this.loadBaseScript();
-        } else if (pageUrl === 'perfil.html') {
+        } else if (cleanPageUrl === 'perfil.html') {
             await this.loadPerfilScript();
-        } else if (pageUrl === 'orcamentos.html') {
+        } else if (cleanPageUrl === 'orcamentos.html') {
             await this.loadOrcamentosScript();
-        } else if (pageUrl === 'orcamentos-edit.html') {
-            await this.loadOrcamentosEditScript();
+        } else if (cleanPageUrl === 'orcamentos-edit.html') {
+            await this.loadOrcamentosEditScript(pageUrl);
         }
     }
     
@@ -282,10 +285,11 @@ class AppCore {
         }
     }
     
-    async loadOrcamentosEditScript() {
+    async loadOrcamentosEditScript(pageUrl = 'orcamentos-edit.html') {
         try {
             await new Promise(resolve => setTimeout(resolve, 200));
-            const urlParams = new URLSearchParams(window.location.search);
+            const queryString = pageUrl.includes('?') ? pageUrl.split('?')[1] : '';
+            const urlParams = new URLSearchParams(queryString);
             const orcamentoId = urlParams.get('id');
             
             const orcamentosEditModule = await import('./orcamentos-edit.js');

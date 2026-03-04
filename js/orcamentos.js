@@ -8,7 +8,7 @@ let todosOrcamentos = [];
 let orcamentosFiltrados = [];
 let paginaAtual = 1;
 const ITENS_POR_PAGINA = 10;
-let inicializado = false;
+let firebaseUnsubscribe = null;
 
 // Status com cores e ícones
 const STATUS_CONFIG = {
@@ -24,9 +24,6 @@ const STATUS_CONFIG = {
 
 // Inicialização (compatível com página direta e SPA)
 export async function init() {
-    if (inicializado) return;
-    inicializado = true;
-
     try {
         await checkAuth(3);
         carregarOrcamentos();
@@ -44,9 +41,14 @@ if (document.readyState === 'loading') {
 
 // Carregar orçamentos do Firebase (do nó statusOrc para economizar)
 function carregarOrcamentos() {
+    if (typeof firebaseUnsubscribe === 'function') {
+        firebaseUnsubscribe();
+        firebaseUnsubscribe = null;
+    }
+
     const statusRef = ref(database, 'statusOrc');
     
-    onValue(statusRef, (snapshot) => {
+    firebaseUnsubscribe = onValue(statusRef, (snapshot) => {
         if (snapshot.exists()) {
             const dados = snapshot.val();
             todosOrcamentos = Object.keys(dados).map(key => ({
@@ -62,6 +64,8 @@ function carregarOrcamentos() {
             atualizarTabela();
             atualizarPaginacao();
         } else {
+            todosOrcamentos = [];
+            orcamentosFiltrados = [];
             document.getElementById('orcamentosTableBody').innerHTML = `
                 <tr>
                     <td colspan="8" class="text-center py-4">
@@ -73,6 +77,7 @@ function carregarOrcamentos() {
                     </td>
                 </tr>
             `;
+        atualizarPaginacao();
         }
     }, (error) => {
         console.error('❌ Erro ao carregar orçamentos:', error);
@@ -93,9 +98,17 @@ function mostrarErroCarregamento(mensagem) {
 
 // Configurar filtros
 function configurarFiltros() {
-    document.getElementById('searchInput').addEventListener('input', aplicarFiltros);
-    document.getElementById('statusFilter').addEventListener('change', aplicarFiltros);
-    document.getElementById('saldoFilter').addEventListener('change', aplicarFiltros);
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const saldoFilter = document.getElementById('saldoFilter');
+
+    if (!searchInput || !statusFilter || !saldoFilter) return;
+
+    searchInput.oninput = aplicarFiltros;
+    statusFilter.onchange = aplicarFiltros;
+    saldoFilter.onchange = aplicarFiltros;
+
+    aplicarFiltros();
 }
 
 // Aplicar filtros
@@ -105,20 +118,25 @@ function aplicarFiltros() {
     const saldoFilter = document.getElementById('saldoFilter').value;
     
     orcamentosFiltrados = todosOrcamentos.filter(orc => {
+        const clienteEmpresa = (orc.clienteEmpresa || orc.projeto?.clienteEmpresa || '').toLowerCase();
+        const descricao = (orc.descricao || orc.projeto?.descricao || '').toLowerCase();
+        const status = orc.status || orc.projeto?.status || '';
+        const saldo = Number(orc.saldo ?? orc.financeiro?.saldo ?? 0);
+
         // Filtro de busca
         const matchesSearch = searchTerm === '' || 
-            orc.clienteEmpresa?.toLowerCase().includes(searchTerm) ||
-            orc.descricao?.toLowerCase().includes(searchTerm);
+            clienteEmpresa.includes(searchTerm) ||
+            descricao.includes(searchTerm);
         
         // Filtro de status
-        const matchesStatus = statusFilter === '' || orc.status === statusFilter;
+        const matchesStatus = statusFilter === '' || status === statusFilter;
         
         // Filtro de saldo
         let matchesSaldo = true;
         if (saldoFilter === 'pendente') {
-            matchesSaldo = orc.saldo > 0;
+            matchesSaldo = saldo > 0;
         } else if (saldoFilter === 'quitado') {
-            matchesSaldo = orc.saldo <= 0;
+            matchesSaldo = saldo <= 0;
         }
         
         return matchesSearch && matchesStatus && matchesSaldo;
@@ -157,22 +175,28 @@ function atualizarTabela() {
     }
     
     tbody.innerHTML = orcamentosPagina.map(orc => {
-        const status = STATUS_CONFIG[orc.status] || { icon: '📋', label: orc.status, color: '#6c757d' };
-        const saldoClass = orc.saldo > 0 ? 'text-warning' : 'text-success';
+        const statusAtual = orc.status || orc.projeto?.status || '';
+        const status = STATUS_CONFIG[statusAtual] || { icon: '📋', label: statusAtual || 'Sem status', color: '#6c757d' };
+        const saldoAtual = Number(orc.saldo ?? orc.financeiro?.saldo ?? 0);
+        const valorBruto = Number(orc.valorBruto ?? orc.financeiro?.valorBruto ?? 0);
+        const clienteEmpresa = orc.clienteEmpresa || orc.projeto?.clienteEmpresa || '---';
+        const descricao = orc.descricao || orc.projeto?.descricao || '---';
+        const dataContato = orc.dataContato || orc.datas?.dataContato;
+        const saldoClass = saldoAtual > 0 ? 'text-warning' : 'text-success';
         
         return `
             <tr>
                 <td><small class="text-muted">${orc.id}</small></td>
-                <td><strong>${orc.clienteEmpresa || '---'}</strong></td>
-                <td>${orc.descricao?.substring(0, 50)}${orc.descricao?.length > 50 ? '...' : ''}</td>
+                <td><strong>${clienteEmpresa}</strong></td>
+                <td>${descricao.substring(0, 50)}${descricao.length > 50 ? '...' : ''}</td>
                 <td>
                     <span class="badge" style="background-color: ${status.color}">
                         ${status.icon} ${status.label}
                     </span>
                 </td>
-                <td>R$ ${formatarMoeda(orc.valorBruto || 0)}</td>
-                <td class="${saldoClass} fw-bold">R$ ${formatarMoeda(orc.saldo || 0)}</td>
-                <td>${formatarData(orc.dataContato)}</td>
+                <td>R$ ${formatarMoeda(valorBruto)}</td>
+                <td class="${saldoClass} fw-bold">R$ ${formatarMoeda(saldoAtual)}</td>
+                <td>${formatarData(dataContato)}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editarOrcamento('${orc.id}')">
                         <i class="fas fa-edit"></i>

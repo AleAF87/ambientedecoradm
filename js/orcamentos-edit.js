@@ -2,7 +2,7 @@
 import { database, auth } from './firebase-config.js';
 import { ref, set, update, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { uploadImagemCloudinary } from './cloudinary-config.js';
+import { uploadImagemCloudinary, deletarImagemCloudinary } from './cloudinary-config.js';
 import { checkAuth } from './auth-check.js';
 
 // Variáveis globais
@@ -10,9 +10,9 @@ let orcamentoId = null;
 let modoEdicao = false;
 let userData = null;
 let userCPF = null;
+let anexosPendentesUpload = {};
 
-// Dados do orçamento em memória
-let dadosOrcamento = {
+const modeloDadosOrcamento = {
     projeto: {},
     datas: {},
     financeiro: {
@@ -32,10 +32,15 @@ let dadosOrcamento = {
     observacoes: ''
 };
 
+// Dados do orçamento em memória
+let dadosOrcamento = structuredClone(modeloDadosOrcamento);
+
 // Função de inicialização (chamada pelo SPA)
 export async function init(editId = null) {
     console.log('🚀 Inicializando orcamentos-edit...', editId);
-    
+    dadosOrcamento = structuredClone(modeloDadosOrcamento);
+    anexosPendentesUpload = {};
+
     // Verificar autenticação
     const authResult = await checkAuth(3);
     userData = authResult.userData;
@@ -53,11 +58,11 @@ export async function init(editId = null) {
     }
     
     // Configurar eventos
-    document.getElementById('orcamentoForm').addEventListener('submit', salvarOrcamento);
-    document.getElementById('valorInicial').addEventListener('input', atualizarResumoFinanceiro);
+    document.getElementById('orcamentoForm').onsubmit = salvarOrcamento;
+    document.getElementById('valorInicial').oninput = atualizarResumoFinanceiro;
     
     // Configurar máscara CPF/CNPJ
-    document.getElementById('cpfCnpj').addEventListener('blur', function() {
+    document.getElementById('cpfCnpj').onblur = function() {
         const valor = this.value;
         const valorLimpo = valor.replace(/\D/g, '');
         
@@ -73,11 +78,11 @@ export async function init(editId = null) {
         } else {
             this.classList.remove('is-valid', 'is-invalid');
         }
-    });
+    };
     
-    document.getElementById('cpfCnpj').addEventListener('input', function() {
+    document.getElementById('cpfCnpj').oninput = function() {
         this.value = this.value.replace(/\D/g, '');
-    });
+    };
     
     atualizarResumoFinanceiro();
 }
@@ -137,7 +142,7 @@ async function carregarOrcamento(id) {
         
         if (!snapshot.exists()) {
             alert('Orçamento não encontrado');
-            window.history.back();
+            cancelarEdicao();
             return;
         }
         
@@ -217,6 +222,8 @@ async function salvarOrcamento(e) {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
     
     try {
+        await fazerUploadAnexosPendentes();
+
         const agora = new Date().toISOString();
         const valorInicial = parseFloat(document.getElementById('valorInicial').value) || 0;
         
@@ -337,6 +344,14 @@ async function salvarOrcamento(e) {
         btnSalvar.innerHTML = '<i class="fas fa-save me-1"></i> Salvar Orçamento';
     }
 }
+
+window.cancelarEdicao = function() {
+    if (window.app && window.app.loadPage) {
+        window.app.loadPage('orcamentos.html');
+    } else {
+        window.location.href = 'orcamentos.html';
+    }
+};
 
 // ========== ALTERAÇÕES DE VALOR ==========
 window.abrirModalAlteracao = function(editarId = null) {
@@ -640,55 +655,69 @@ window.abrirModalAnexo = function() {
 };
 
 window.uploadAnexo = async function() {
-    const arquivo = document.getElementById('anexoArquivo').files[0];
-    const nome = document.getElementById('anexoNome').value;
+    const arquivos = Array.from(document.getElementById('anexoArquivo').files || []);
+    const nome = document.getElementById('anexoNome').value.trim();
     const descricao = document.getElementById('anexoDescricao').value;
     
-    if (!arquivo || !nome) {
-        alert('Selecione um arquivo e dê um nome ao anexo');
+    if (arquivos.length === 0 || !nome) {
+        alert('Selecione ao menos um arquivo e dê um nome ao anexo');
         return;
     }
     
-    const btnUpload = document.querySelector('#modalAnexo .btn-primary');
-    btnUpload.disabled = true;
-    btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
-    
-    try {
-        const resultado = await uploadImagemCloudinary(arquivo);
-        
-        const anexo = {
+    const baseSequencia = gerarSubItemId('anexp');
+    arquivos.forEach((arquivo, index) => {
+        const nomeSequencial = arquivos.length === 1
+            ? nome
+            : `${nome} (${index + 1})`;
+        const novoId = `${baseSequencia}_${String(index + 1).padStart(2, '0')}`;
+
+        dadosOrcamento.anexos[novoId] = {
             data: new Date().toISOString(),
-            nome,
+            nome: nomeSequencial,
             descricao,
-            url: resultado.url,
-            publicId: resultado.publicId,
+            url: '',
+            publicId: null,
+            pendenteUpload: true,
+            nomeArquivo: arquivo.name,
             criadoPor: userData.nome,
             criadoPorCPF: userCPF
         };
         
-        const novoId = gerarSubItemId('anex');
-        dadosOrcamento.anexos[novoId] = anexo;
-        
-        const histId = gerarSubItemId('hist');
-        dadosOrcamento.historicoAlteracoes[histId] = {
-            data: new Date().toISOString(),
-            usuario: userData.nome,
-            cpf: userCPF,
-            acao: 'anexo',
-            descricao: `Anexo adicionado: ${nome}`
+        anexosPendentesUpload[novoId] = arquivo;
+    });
+
+    const histId = gerarSubItemId('hist');
+    dadosOrcamento.historicoAlteracoes[histId] = {
+        data: new Date().toISOString(),
+        usuario: userData.nome,
+        cpf: userCPF,
+        acao: 'anexo_pendente',
+        descricao: `${arquivos.length} anexo(s) adicionado(s) e pendente(s) de upload` 
+    };
+
+    atualizarAnexos();
+    fecharModal('modalAnexo');
+};
+
+async function fazerUploadAnexosPendentes() {
+    const idsPendentes = Object.keys(anexosPendentesUpload);
+    if (idsPendentes.length === 0) return;
+
+    for (const id of idsPendentes) {
+        const arquivo = anexosPendentesUpload[id];
+        if (!arquivo) continue;
+
+        const resultado = await uploadImagemCloudinary(arquivo);
+        dadosOrcamento.anexos[id] = {
+            ...dadosOrcamento.anexos[id],
+            url: resultado.url,
+            publicId: resultado.publicId,
+            pendenteUpload: false
         };
         
-        atualizarAnexos();
-        fecharModal('modalAnexo');
-        
-    } catch (error) {
-        console.error('Erro no upload:', error);
-        alert('Erro ao fazer upload do anexo');
-    } finally {
-        btnUpload.disabled = false;
-        btnUpload.innerHTML = 'Upload';
+        delete anexosPendentesUpload[id];
     }
-};
+}
 
 function atualizarAnexos() {
     const container = document.getElementById('anexosContainer');
@@ -699,35 +728,44 @@ function atualizarAnexos() {
         return;
     }
     
-    container.innerHTML = Object.entries(anexos)
+    container.innerHTML = `
+        <div class="list-group list-group-flush">
+            ${Object.entries(anexos)
         .sort((a, b) => b[1].data.localeCompare(a[1].data))
         .map(([id, anexo]) => `
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h6 class="card-title">${anexo.nome}</h6>
-                        <p class="card-text small text-muted">${anexo.descricao || ''}</p>
-                        <p class="card-text">
-                            <small class="text-muted">
-                                ${formatarDataHora(anexo.data)}
-                            </small>
-                        </p>
-                        <div class="d-flex justify-content-between">
-                            <a href="${anexo.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-eye"></i> Visualizar
-                            </a>
-                            <button class="btn btn-sm btn-outline-danger" onclick="excluirAnexo('${id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
+            <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                <div>
+                    <h6 class="mb-1">${anexo.nome}</h6>
+                    <p class="mb-1 small text-muted">${anexo.descricao || ''}</p>
+                    <small class="text-muted">${formatarDataHora(anexo.data)}</small>
+                    ${anexo.pendenteUpload ? '<span class="badge bg-warning text-dark ms-2">Pendente de upload</span>' : ''}
+                </div>
+                <div class="d-flex gap-2">
+                    ${anexo.url ? `<a href="${anexo.url}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Visualizar</a>` : ''}
+                    <button class="btn btn-sm btn-outline-danger" onclick="excluirAnexo('${id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
-        `).join('');
+        `).join('')}
+        </div>
+    `;
 }
 
-window.excluirAnexo = function(id) {
+window.excluirAnexo = async function(id) {
     if (confirm('Tem certeza que deseja excluir este anexo?')) {
+        const anexo = dadosOrcamento.anexos[id];
+        if (anexo?.publicId) {
+            try {
+                await deletarImagemCloudinary(anexo.publicId);
+            } catch (error) {
+                console.error('Erro ao excluir anexo no Cloudinary:', error);
+                alert('Não foi possível excluir o arquivo no Cloudinary. Tente novamente.');
+                return;
+            }
+        }
+
+        delete anexosPendentesUpload[id];
         delete dadosOrcamento.anexos[id];
         atualizarAnexos();
     }
@@ -798,3 +836,17 @@ window.abrirModalAnexo = window.abrirModalAnexo;
 window.uploadAnexo = window.uploadAnexo;
 window.excluirAnexo = window.excluirAnexo;
 window.atualizarResumoFinanceiro = atualizarResumoFinanceiro;
+
+// Inicialização automática quando a página é aberta fora do SPA
+if (!window.location.pathname.includes('app.html')) {
+    const autoInit = () => {
+        const params = new URLSearchParams(window.location.search);
+        init(params.get('id'));
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', autoInit);
+    } else {
+        autoInit();
+    }
+}
