@@ -146,7 +146,13 @@ async function carregarOrcamento(id) {
             return;
         }
         
-        dadosOrcamento = snapshot.val();
+        dadosOrcamento = snapshot.val() || {};
+        dadosOrcamento.financeiro = dadosOrcamento.financeiro || {};
+        dadosOrcamento.financeiro.alteracoesValor = dadosOrcamento.financeiro.alteracoesValor || {};
+        dadosOrcamento.financeiro.custos = dadosOrcamento.financeiro.custos || {};
+        dadosOrcamento.financeiro.pagamentos = dadosOrcamento.financeiro.pagamentos || {};
+        dadosOrcamento.anexos = dadosOrcamento.anexos || {};
+        dadosOrcamento.historicoAlteracoes = dadosOrcamento.historicoAlteracoes || {};
         
         // Preencher formulário
         document.getElementById('clienteEmpresa').value = dadosOrcamento.projeto?.clienteEmpresa || '';
@@ -664,6 +670,9 @@ window.uploadAnexo = async function() {
         return;
     }
     
+    dadosOrcamento.anexos = dadosOrcamento.anexos || {};
+    dadosOrcamento.historicoAlteracoes = dadosOrcamento.historicoAlteracoes || {};
+
     const baseSequencia = gerarSubItemId('anexp');
     arquivos.forEach((arquivo, index) => {
         const nomeSequencial = arquivos.length === 1
