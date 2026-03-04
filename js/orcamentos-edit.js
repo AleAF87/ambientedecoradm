@@ -695,10 +695,10 @@ function atualizarTabelaAlteracoes() {
                 <td>${formatarMoeda(Math.abs(alt.valor))}</td>
                 <td>${alt.descricao}</td>
                 <td>
-                    <button class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalAlteracao('${id}')">
+                    <button type="button" class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalAlteracao('${id}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-link p-0 text-danger" onclick="excluirAlteracao('${id}')">
+                    <button type="button" class="btn btn-sm btn-link p-0 text-danger" onclick="excluirAlteracao('${id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -792,10 +792,10 @@ function atualizarTabelaCustos() {
                 <td>${formatarMoeda(custo.valor)}</td>
                 <td>${custo.descricao}</td>
                 <td>
-                    <button class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalCusto('${id}')">
+                    <button type="button" class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalCusto('${id}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-link p-0 text-danger" onclick="excluirCusto('${id}')">
+                    <button type="button" class="btn btn-sm btn-link p-0 text-danger" onclick="excluirCusto('${id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -889,10 +889,10 @@ function atualizarTabelaPagamentos() {
                 <td class="text-success fw-bold">${formatarMoeda(pag.valor)}</td>
                 <td>${pag.descricao}</td>
                 <td>
-                    <button class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalPagamento('${id}')">
+                    <button type="button" class="btn btn-sm btn-link p-0 me-2" onclick="abrirModalPagamento('${id}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-link p-0 text-danger" onclick="excluirPagamento('${id}')">
+                    <button type="button" class="btn btn-sm btn-link p-0 text-danger" onclick="excluirPagamento('${id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -1001,7 +1001,7 @@ function atualizarAnexos() {
                 </div>
                 <div class="d-flex gap-2">
                     ${anexo.url ? `<a href="${anexo.url}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Visualizar</a>` : ''}
-                    <button class="btn btn-sm btn-outline-danger" onclick="excluirAnexo('${id}')">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirAnexo('${id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
