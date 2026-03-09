@@ -127,7 +127,8 @@ function highlightMenu() {
         if (href === currentPage || 
             (currentPage.includes('orcamentos') && href.includes('orcamentos')) ||
             (currentPage.includes('dashboard') && href.includes('dashboard')) ||
-            (currentPage.includes('perfil') && href.includes('perfil'))) {
+            (currentPage.includes('perfil') && href.includes('perfil')) ||
+            (currentPage.includes('sociedade') && href.includes('sociedade'))) {
             
             link.classList.add('active');
             link.style.pointerEvents = 'none';
@@ -163,6 +164,27 @@ function setupSPANavigation() {
             } else {
                 window.location.href = href;
             }
+        }
+    });
+}
+
+// 6. COMPORTAMENTO MOBILE (RECOLHER AO CLICAR LINK/FORA)
+function setupMobileNavbarCollapse() {
+    const collapseElement = document.getElementById('mainNavbar');
+    const toggler = document.querySelector('.navbar-toggler');
+    if (!collapseElement || !toggler || typeof bootstrap === 'undefined') return;
+
+    const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapseElement, { toggle: false });
+
+    document.addEventListener('click', (event) => {
+        const isExpanded = collapseElement.classList.contains('show');
+        if (!isExpanded) return;
+
+        const clickedInNavbar = event.target.closest('.navbar');
+        const clickedNavLink = event.target.closest('#mainNavbar .nav-link');
+
+        if (clickedNavLink || !clickedInNavbar) {
+            collapseInstance.hide();
         }
     });
 }
@@ -213,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDropdown();
     highlightMenu();
     setupSPANavigation();
+    setupMobileNavbarCollapse();
     styleDropdownToggle();
     
     // Inicializar tooltips do Bootstrap
@@ -267,7 +290,8 @@ window.updateNavbarActiveMenu = function(pageUrl) {
         if (href === pageUrl || 
             (pageUrl.includes('orcamentos') && href.includes('orcamentos')) ||
             (pageUrl.includes('dashboard') && href.includes('dashboard')) ||
-            (pageUrl.includes('perfil') && href.includes('perfil'))) {
+            (pageUrl.includes('perfil') && href.includes('perfil')) ||
+            (pageUrl.includes('sociedade') && href.includes('sociedade'))) {
             
             link.classList.add('active');
             link.style.pointerEvents = 'none';

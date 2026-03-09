@@ -312,12 +312,32 @@
                                                 <option value="medicao_fina">📏 Medição Fina</option>
                                                 <option value="producao" selected>🔨 Produção</option>
                                                 <option value="montagem">🔧 Montagem</option>
+                                                <option value="aguardando">⏳ Aguardando</option>
                                                 <option value="concluido">✅ Concluído</option>
                                                 <option value="geladeira">❄️ Geladeira</option>
                                                 <option value="cancelado">🚫 Cancelado</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-8 mb-3">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Próxima missão</label>
+                                            <select class="form-select" id="statusProxMissao">
+                                                <option value="">Selecione...</option>
+                                                <option value="fazer_visita">🚪 Fazer Visita</option>
+                                                <option value="fazer_orcamento">📝 Fazer Orçamento</option>
+                                                <option value="medicao_fina">📏 Medição Fina</option>
+                                                <option value="producao">🔨 Produção</option>
+                                                <option value="montagem">🔧 Montagem</option>
+                                                <option value="aguardando">⏳ Aguardando</option>
+                                                <option value="concluido">✅ Concluído</option>
+                                                <option value="geladeira">❄️ Geladeira</option>
+                                                <option value="cancelado">🚫 Cancelado</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Data próximo evento</label>
+                                            <input type="date" class="form-control" id="dataProximoEvento">
+                                        </div>
+                                        <div class="col-12 mb-3">
                                             <label class="form-label">Observações</label>
                                             <textarea class="form-control" id="observacoes" rows="2"></textarea>
                                         </div>

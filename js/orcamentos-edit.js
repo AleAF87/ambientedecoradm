@@ -70,6 +70,21 @@ function converterMoedaParaNumero(valor) {
     return parseFloat(valorLimpo) || 0;
 }
 
+
+function getNowLocalISO() {
+    const agora = new Date();
+    const offset = agora.getTimezoneOffset() * 60000;
+    return new Date(agora.getTime() - offset).toISOString().slice(0, 19);
+}
+
+function getNowDateTimeLocalValue() {
+    return getNowLocalISO().slice(0, 16);
+}
+
+function getLocalDateValue() {
+    return getNowLocalISO().slice(0, 10);
+}
+
 // Função de inicialização (chamada pelo SPA)
 export async function init(editId = null) {
     console.log('🚀 Inicializando orcamentos-edit...', editId);
@@ -89,7 +104,7 @@ export async function init(editId = null) {
         await carregarOrcamento(orcamentoId);
     } else {
         document.getElementById('formTitulo').textContent = 'Novo Orçamento';
-        document.getElementById('dataContato').value = new Date().toISOString().split('T')[0];
+        document.getElementById('dataContato').value = getLocalDateValue();
     }
     
     // Carregar estados e municípios
@@ -406,6 +421,8 @@ async function carregarOrcamento(id) {
         });
         
         document.getElementById('status').value = dadosOrcamento.status || 'producao';
+        document.getElementById('statusProxMissao').value = dadosOrcamento.statusProxMissao || '';
+        document.getElementById('dataProximoEvento').value = dadosOrcamento.datas?.dataProximoEvento || '';
         document.getElementById('observacoes').value = dadosOrcamento.observacoes || '';
         
         atualizarTabelaAlteracoes();
@@ -464,7 +481,7 @@ async function salvarOrcamento(e) {
     try {
         await fazerUploadAnexosPendentes();
 
-        const agora = new Date().toISOString();
+        const agora = getNowLocalISO();
         const valorInicial = converterMoedaParaNumero(document.getElementById('valorInicial').value);
 
         const totalAlteracoes = calcularTotalAlteracoes();
@@ -500,7 +517,8 @@ async function salvarOrcamento(e) {
                 dataInicioProducao: document.getElementById('dataInicioProducao').value || null,
                 dataProducaoConcluida: document.getElementById('dataProducaoConcluida').value || null,
                 dataInicioMontagem: document.getElementById('dataInicioMontagem').value || null,
-                dataMontagemConcluida: document.getElementById('dataMontagemConcluida').value || null
+                dataMontagemConcluida: document.getElementById('dataMontagemConcluida').value || null,
+                dataProximoEvento: document.getElementById('dataProximoEvento').value || null
             },
             financeiro: {
                 valorInicial,
@@ -517,6 +535,7 @@ async function salvarOrcamento(e) {
             anexos: dadosOrcamento.anexos || {},
             historicoAlteracoes: dadosOrcamento.historicoAlteracoes || {},
             status: document.getElementById('status').value,
+            statusProxMissao: document.getElementById('statusProxMissao').value || null,
             observacoes: document.getElementById('observacoes').value,
             criadoPor: userData.nome,
             criadoPorCPF: userCPF,
@@ -554,16 +573,13 @@ async function salvarOrcamento(e) {
         const statusData = {
             id: dadosParaSalvar.id,
             clienteEmpresa,
-            descricao: descricao.substring(0, 100),
-            valorBruto,
-            valorLiquido,
-            saldo,
+            proximoEvento: dadosParaSalvar.statusProxMissao || null,
+            proximoEventoData: dadosParaSalvar.datas.dataProximoEvento || null,
             status: dadosParaSalvar.status,
+            bairro: dadosParaSalvar.endereco.bairro || '',
+            temSaldoPendente: saldo !== 0,
+            valorBruto,
             dataContato,
-            proximoEvento: dadosParaSalvar.datas.dataInicioProducao || dadosParaSalvar.datas.dataVisita || null,
-            proximoEventoDescricao: dadosParaSalvar.datas.dataInicioProducao ? 'Início Produção' : 
-                                   dadosParaSalvar.datas.dataVisita ? 'Visita' : null,
-            temSaldoPendente: saldo > 0,
             ultimaAlteracao: agora,
             criadoEm: dadosParaSalvar.criadoEm || agora
         };
@@ -574,6 +590,18 @@ async function salvarOrcamento(e) {
             await set(ref(database, `statusOrcamento/${dadosParaSalvar.id}`), statusData);
         }
         
+        const sociedadeData = {
+            id: dadosParaSalvar.id,
+            clienteEmpresa,
+            dataContato,
+            valorLiquido,
+            status: dadosParaSalvar.status,
+            observacoes: dadosParaSalvar.observacoes || '',
+            temSaldoPendente: saldo !== 0
+        };
+
+        await set(ref(database, `sociedade/${dadosParaSalvar.id}`), sociedadeData);
+
         alert('Orçamento salvo com sucesso!');
         
         if (window.app && window.app.loadPage) {
@@ -614,7 +642,7 @@ window.abrirModalAlteracao = function(editarId = null) {
         document.getElementById('alteracaoDescricao').value = alteracao.descricao;
     } else {
         document.getElementById('alteracaoEditando').value = '';
-        document.getElementById('alteracaoData').value = new Date().toISOString().slice(0, 16);
+        document.getElementById('alteracaoData').value = getNowDateTimeLocalValue();
         document.getElementById('alteracaoTipo').value = 'acrescimo';
         document.getElementById('alteracaoValor').value = '';
         document.getElementById('alteracaoDescricao').value = '';
@@ -652,7 +680,7 @@ window.salvarAlteracao = function() {
         
         const histId = gerarSubItemId('hist');
         dadosOrcamento.historicoAlteracoes[histId] = {
-            data: new Date().toISOString(),
+            data: getNowLocalISO(),
             usuario: userData.nome,
             cpf: userCPF,
             acao: 'financeiro',
@@ -719,7 +747,7 @@ window.abrirModalCusto = function(editarId = null) {
         document.getElementById('custoDescricao').value = custo.descricao;
     } else {
         document.getElementById('custoEditando').value = '';
-        document.getElementById('custoData').value = new Date().toISOString().slice(0, 16);
+        document.getElementById('custoData').value = getNowDateTimeLocalValue();
         document.getElementById('custoValor').value = '';
         document.getElementById('custoDescricao').value = '';
     }
@@ -754,7 +782,7 @@ window.salvarCusto = function() {
         
         const histId = gerarSubItemId('hist');
         dadosOrcamento.historicoAlteracoes[histId] = {
-            data: new Date().toISOString(),
+            data: getNowLocalISO(),
             usuario: userData.nome,
             cpf: userCPF,
             acao: 'custo',
@@ -816,7 +844,7 @@ window.abrirModalPagamento = function(editarId = null) {
         document.getElementById('pagamentoDescricao').value = pagamento.descricao;
     } else {
         document.getElementById('pagamentoEditando').value = '';
-        document.getElementById('pagamentoData').value = new Date().toISOString().slice(0, 16);
+        document.getElementById('pagamentoData').value = getNowDateTimeLocalValue();
         document.getElementById('pagamentoValor').value = '';
         document.getElementById('pagamentoDescricao').value = '';
     }
@@ -851,7 +879,7 @@ window.salvarPagamento = function() {
         
         const histId = gerarSubItemId('hist');
         dadosOrcamento.historicoAlteracoes[histId] = {
-            data: new Date().toISOString(),
+            data: getNowLocalISO(),
             usuario: userData.nome,
             cpf: userCPF,
             acao: 'pagamento',
@@ -931,7 +959,7 @@ window.uploadAnexo = async function() {
         const novoId = `${baseSequencia}_${String(index + 1).padStart(2, '0')}`;
 
         dadosOrcamento.anexos[novoId] = {
-            data: new Date().toISOString(),
+            data: getNowLocalISO(),
             nome: nomeSequencial,
             descricao,
             url: '',
@@ -947,7 +975,7 @@ window.uploadAnexo = async function() {
 
     const histId = gerarSubItemId('hist');
     dadosOrcamento.historicoAlteracoes[histId] = {
-        data: new Date().toISOString(),
+        data: getNowLocalISO(),
         usuario: userData.nome,
         cpf: userCPF,
         acao: 'anexo_pendente',

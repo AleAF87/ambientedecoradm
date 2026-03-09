@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sociedade - Edição</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="navbar"></div>
+  <main class="container mt-4">
+    <div class="card">
+      <div class="card-header bg-white"><h4 class="mb-0">Sociedade - Edição</h4></div>
+      <div class="card-body">
+        <form id="socEditForm" class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Percentual de divisão (%)</label>
+            <input id="percentualDivisao" type="number" min="0" max="100" step="0.1" class="form-control" value="50" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Pagamento David</label>
+            <input id="pagamentoDavid" type="date" class="form-control" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Pagamento Alexandre</label>
+            <input id="pagamentoAlexandre" type="date" class="form-control" />
+          </div>
+
+          <div class="col-12">
+            <button id="btnSelecionarAnexo" class="btn btn-outline-primary" type="button">Selecionar anexo (Cloudinary/sociedade)</button>
+            <input id="anexoSociedade" type="file" class="form-control mt-2" />
+            <small class="text-muted">O upload só é feito quando clicar em salvar.</small>
+          </div>
+
+          <div class="col-md-6">
+            <h6>David</h6>
+            <input id="valorDavid" class="form-control" placeholder="Valor David" />
+          </div>
+          <div class="col-md-6">
+            <h6>Alexandre</h6>
+            <input id="valorAlexandre" class="form-control" placeholder="Valor Alexandre" />
+          </div>
+
+          <div class="col-12 d-flex gap-2 justify-content-end">
+            <button class="btn btn-outline-secondary" type="button" onclick="window.history.back()">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="js/sociedade-edit.js"></script>
+</body>
+</html>

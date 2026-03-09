@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sociedade - Ambiente Decor Adm</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="navbar"></div>
+  <main class="container-fluid mt-4">
+    <div class="card">
+      <div class="card-header bg-white d-flex gap-2 flex-wrap align-items-center">
+        <h4 class="mb-0 me-auto">Sociedade</h4>
+        <input id="socBusca" class="form-control" style="max-width:260px" placeholder="Buscar cliente" />
+        <select id="socStatus" class="form-select" style="max-width:220px"></select>
+        <div class="form-check ms-2">
+          <input class="form-check-input" type="checkbox" id="socSaldo" />
+          <label class="form-check-label" for="socSaldo">Só com saldo pendente</label>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="sociedadeLista" class="list-group"></div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="js/sociedade.js"></script>
+</body>
+</html>

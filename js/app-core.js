@@ -181,7 +181,7 @@ class AppCore {
             const html = await response.text();
             
             if (cleanPageUrl === 'base.html' || cleanPageUrl === 'perfil.html' || 
-                cleanPageUrl === 'orcamentos.html' || cleanPageUrl === 'orcamentos-edit.html') {
+                cleanPageUrl === 'orcamentos.html' || cleanPageUrl === 'orcamentos-edit.html' || cleanPageUrl === 'sociedade.html' || cleanPageUrl === 'sociedade-edit.html') {
                 await this.loadSpecialPage(html, pageUrl);
             } else {
                 const pageContent = this.extractContent(html, pageUrl);
@@ -242,6 +242,10 @@ class AppCore {
             await this.loadOrcamentosScript();
         } else if (cleanPageUrl === 'orcamentos-edit.html') {
             await this.loadOrcamentosEditScript(pageUrl);
+        } else if (cleanPageUrl === 'sociedade.html') {
+            await this.loadSociedadeScript();
+        } else if (cleanPageUrl === 'sociedade-edit.html') {
+            await this.loadSociedadeEditScript(pageUrl);
         }
     }
     
@@ -298,6 +302,28 @@ class AppCore {
             }
         } catch (error) {
             console.error('❌ Erro ao carregar orcamentos-edit:', error);
+        }
+    }
+
+    async loadSociedadeScript() {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const mod = await import('./sociedade.js');
+            if (mod?.initSociedade) await mod.initSociedade();
+        } catch (error) {
+            console.error('❌ Erro ao carregar sociedade:', error);
+        }
+    }
+
+    async loadSociedadeEditScript(pageUrl = 'sociedade-edit.html') {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const queryString = pageUrl.includes('?') ? pageUrl.split('?')[1] : '';
+            const id = new URLSearchParams(queryString).get('id');
+            const mod = await import('./sociedade-edit.js');
+            if (mod?.initSociedadeEdit) await mod.initSociedadeEdit(id);
+        } catch (error) {
+            console.error('❌ Erro ao carregar sociedade-edit:', error);
         }
     }
     

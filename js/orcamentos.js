@@ -17,6 +17,7 @@ const STATUS_CONFIG = {
     'medicao_fina': { icon: '📏', label: 'Medição Fina', color: '#ffc107' },
     'producao': { icon: '🔨', label: 'Produção', color: '#fd7e14' },
     'montagem': { icon: '🔧', label: 'Montagem', color: '#20c997' },
+    'aguardando': { icon: '⏳', label: 'Aguardando', color: '#6610f2' },
     'concluido': { icon: '✅', label: 'Concluído', color: '#198754' },
     'geladeira': { icon: '❄️', label: 'Geladeira', color: '#0dcaf0' },
     'cancelado': { icon: '🚫', label: 'Cancelado', color: '#dc3545' }
