@@ -9,7 +9,7 @@ class AppCore {
             return null;
         }
         
-        this.currentPage = 'dashboard.html';
+        this.currentPage = null;
     }
     
     async init() {

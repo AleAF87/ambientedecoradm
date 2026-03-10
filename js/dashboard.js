@@ -28,6 +28,7 @@ const STATUS_ORDER = [
 ];
 
 let lista = [];
+let listaOrcamentos = [];
 let termoBusca = '';
 let modoVisualizacao = 'kanban';
 let draggedItem = null;
@@ -55,6 +56,12 @@ export async function initDashboard() {
     onValue(ref(database, 'statusOrc'), (snapshot) => {
         const dados = snapshot.val() || {};
         lista = Object.keys(dados).map((id) => ({ id, ...dados[id] }));
+        render();
+    });
+
+    onValue(ref(database, 'orcamentos'), (snapshot) => {
+        const dados = snapshot.val() || {};
+        listaOrcamentos = Object.keys(dados).map((id) => ({ id, ...dados[id] }));
         render();
     });
 }
@@ -133,8 +140,6 @@ function render() {
         </div>
     `;
 
-    // Adicionar estilos dinamicamente se não existirem
-    adicionarEstilosKanban();
     habilitarDragAndDrop();
 }
 
@@ -284,7 +289,12 @@ async function drop(event) {
     if (!atual || atual.status === novoStatus) return;
 
     // Atualizar no Firebase
-    await update(ref(database, `statusOrc/${id}`), { status: novoStatus });
+    await Promise.all([
+        update(ref(database, `statusOrc/${id}`), { status: novoStatus }),
+        update(ref(database, `orcamentos/${id}`), { status: novoStatus }).catch(async () => {
+            await update(ref(database, `orcamento/${id}`), { status: novoStatus });
+        })
+    ]);
 }
 
 function renderCalendario(container, itens) {
@@ -296,9 +306,25 @@ function renderCalendario(container, itens) {
     const inicioSemana = primeiroDia.getDay();
 
     const eventosPorDia = {};
-    itens.forEach((item) => {
-        if (!item.proximoEventoData) return;
-        const [yyyy, mm, dd] = item.proximoEventoData.split('-').map(Number);
+    const itensCalendario = listaOrcamentos.length > 0
+        ? listaOrcamentos
+            .map((orc) => ({
+                id: orc.id,
+                clienteEmpresa: orc.projeto?.clienteEmpresa || orc.clienteEmpresa || 'Sem cliente',
+                dataProximoEvento: orc.datas?.dataProximoEvento || orc.dataProximoEvento || null,
+                statusProxMissao: orc.statusProxMissaro || orc.statusProxMissao || null,
+                status: orc.status || 'aguardando'
+            }))
+            .filter((orc) => (orc.clienteEmpresa || '').toLowerCase().includes(termoBusca))
+        : itens.map((item) => ({
+            ...item,
+            dataProximoEvento: item.proximoEventoData,
+            statusProxMissao: item.proximoEvento || item.statusProxMissaro || item.statusProxMissao
+        }));
+
+    itensCalendario.forEach((item) => {
+        if (!item.dataProximoEvento) return;
+        const [yyyy, mm, dd] = item.dataProximoEvento.split('-').map(Number);
         if (!yyyy || !mm || !dd) return;
         if (yyyy !== ano || mm - 1 !== mes) return;
 
@@ -322,7 +348,7 @@ function renderCalendario(container, itens) {
                     ${eventos.map((item) => `
                         <div class="calendar-event" onclick="window.abrirOrcamento('${item.id}')">
                             <div class="event-title">${item.clienteEmpresa || 'Sem cliente'}</div>
-                            <div class="event-status">${STATUS_LABELS[item.status] || '-'}</div>
+                            <div class="event-status">${STATUS_LABELS[item.statusProxMissao] || '-'}</div>
                         </div>
                     `).join('')}
                     ${eventos.length === 0 ? '<div class="no-events">Sem eventos</div>' : ''}
@@ -354,323 +380,6 @@ function formatarData(data) {
     const p = data.split('-');
     if (p.length !== 3) return data;
     return `${p[2]}/${p[1]}/${p[0]}`;
-}
-
-function adicionarEstilosKanban() {
-    // Verificar se os estilos já existem
-    if (document.getElementById('kanban-styles')) return;
-
-    const styles = `
-        <style id="kanban-styles">
-            .stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 30px;
-            }
-
-            .stat-card {
-                background: white;
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-
-            .stat-card h3 {
-                color: #666;
-                font-size: 0.9em;
-                margin-bottom: 5px;
-            }
-
-            .stat-card .number {
-                font-size: 2em;
-                font-weight: bold;
-                color: #1a237e;
-            }
-
-            .kanban-board {
-                display: flex;
-                gap: 20px;
-                overflow-x: auto;
-                padding: 10px 0 20px 0;
-                min-height: 600px;
-            }
-
-            .kanban-column {
-                min-width: 320px;
-                background: #f8f9fa;
-                border-radius: 12px;
-                padding: 15px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                display: flex;
-                flex-direction: column;
-                max-height: 800px;
-            }
-
-            .column-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-                padding-bottom: 10px;
-                border-bottom: 2px solid #e0e0e0;
-            }
-
-            .column-header h2 {
-                font-size: 1.1em;
-                color: #333;
-                margin: 0;
-                font-weight: 600;
-            }
-
-            .column-count {
-                background: #e0e0e0;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 0.9em;
-                font-weight: bold;
-                color: #333;
-            }
-
-            .cards-container {
-                flex: 1;
-                min-height: 400px;
-                overflow-y: auto;
-                padding: 5px;
-                transition: background-color 0.2s;
-            }
-
-            .cards-container.drag-over {
-                background-color: #e3f2fd;
-                border-radius: 8px;
-            }
-
-            .card {
-                background: white;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 12px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                cursor: move;
-                transition: transform 0.2s, box-shadow 0.2s;
-                border-left: 4px solid;
-                position: relative;
-            }
-
-            .card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }
-
-            .card.dragging {
-                opacity: 0.5;
-                transform: scale(0.98);
-            }
-
-            .card-header {
-                margin-bottom: 10px;
-            }
-
-            .os-number {
-                font-weight: bold;
-                color: #1a237e;
-                background: #e8eaf6;
-                padding: 4px 10px;
-                border-radius: 5px;
-                font-size: 0.85em;
-                display: inline-block;
-            }
-
-            .card-body h3 {
-                font-size: 1.1em;
-                margin: 0 0 8px 0;
-                color: #333;
-                font-weight: 600;
-                padding-right: 30px;
-            }
-
-            .card-body p {
-                color: #666;
-                font-size: 0.9em;
-                margin: 4px 0;
-                display: flex;
-                align-items: center;
-                gap: 5px;
-            }
-
-            .card-footer {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                font-size: 0.85em;
-                color: #666;
-                border-top: 1px solid #eee;
-                padding-top: 10px;
-                margin-top: 10px;
-            }
-
-            .client-info {
-                display: flex;
-                align-items: center;
-                gap: 5px;
-            }
-
-            .deadline {
-                padding: 3px 8px;
-                border-radius: 12px;
-                font-weight: 500;
-                font-size: 0.85em;
-            }
-
-            .deadline.overdue {
-                background: #ffebee;
-                color: #c62828;
-            }
-
-            .deadline.today {
-                background: #fff3e0;
-                color: #ef6c00;
-            }
-
-            .deadline.soon {
-                background: #fff3e0;
-                color: #ef6c00;
-            }
-
-            .card-edit-btn {
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                background: none;
-                border: none;
-                color: #1a237e;
-                cursor: pointer;
-                padding: 5px 8px;
-                border-radius: 4px;
-                transition: background-color 0.2s;
-            }
-
-            .card-edit-btn:hover {
-                background: #e8eaf6;
-            }
-
-            .empty-column {
-                color: #999;
-                text-align: center;
-                padding: 20px;
-                font-style: italic;
-            }
-
-            /* Estilos do calendário */
-            .calendar-header {
-                margin-bottom: 20px;
-            }
-
-            .calendar-header h3 {
-                color: #1a237e;
-                text-transform: capitalize;
-            }
-
-            .calendar-grid {
-                display: grid;
-                grid-template-columns: repeat(7, 1fr);
-                gap: 10px;
-            }
-
-            .weekday {
-                font-weight: 600;
-                text-align: center;
-                padding: 10px;
-                background: #f8f9fa;
-                border-radius: 5px;
-                color: #333;
-            }
-
-            .calendar-day {
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                padding: 10px;
-                min-height: 120px;
-                background: white;
-            }
-
-            .calendar-day.empty {
-                background: #f5f5f5;
-                border: 1px dashed #ccc;
-            }
-
-            .calendar-day.today {
-                background: #e8eaf6;
-                border: 2px solid #1a237e;
-            }
-
-            .day-number {
-                font-weight: bold;
-                color: #1a237e;
-                margin-bottom: 8px;
-            }
-
-            .day-events {
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
-            }
-
-            .calendar-event {
-                background: #f0f0f0;
-                padding: 5px;
-                border-radius: 4px;
-                font-size: 0.85em;
-                cursor: pointer;
-                transition: background-color 0.2s;
-                border-left: 3px solid #1a237e;
-            }
-
-            .calendar-event:hover {
-                background: #e0e0e0;
-            }
-
-            .event-title {
-                font-weight: 500;
-                color: #333;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .event-status {
-                font-size: 0.8em;
-                color: #666;
-            }
-
-            .no-events {
-                color: #999;
-                font-size: 0.85em;
-                text-align: center;
-                padding: 5px;
-            }
-
-            @media (max-width: 768px) {
-                .kanban-board {
-                    flex-direction: column;
-                }
-                
-                .kanban-column {
-                    min-width: 100%;
-                }
-
-                .calendar-grid {
-                    grid-template-columns: repeat(1, 1fr);
-                }
-
-                .weekday {
-                    display: none;
-                }
-            }
-        </style>
-    `;
-
-    document.head.insertAdjacentHTML('beforeend', styles);
 }
 
 window.abrirOrcamento = function (id) {

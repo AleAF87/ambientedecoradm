@@ -4,6 +4,7 @@ import { ref, get, update } from "https://www.gstatic.com/firebasejs/9.23.0/fire
 import { uploadImagemCloudinary } from './cloudinary-config.js';
 
 let itemId = null;
+let valorLiquidoAtual = 0;
 
 export async function initSociedadeEdit(idFromSPA = null) {
   await checkAuth(3);
@@ -13,13 +14,33 @@ export async function initSociedadeEdit(idFromSPA = null) {
   const snapshot = await get(ref(database, `sociedade/${itemId}`));
   const dados = snapshot.val() || {};
 
+  valorLiquidoAtual = Number(dados.valorLiquido || 0);
+
+  document.getElementById('valorLiquido').value = formatarMoeda(valorLiquidoAtual);
   document.getElementById('percentualDivisao').value = dados.percentualDivisao ?? 50;
   document.getElementById('pagamentoDavid').value = dados.pagamentoDavid || '';
   document.getElementById('pagamentoAlexandre').value = dados.pagamentoAlexandre || '';
-  document.getElementById('valorDavid').value = dados.valorDavid || '';
-  document.getElementById('valorAlexandre').value = dados.valorAlexandre || '';
+  
+  atualizarValoresSocios();
 
+  document.getElementById('percentualDivisao')?.addEventListener('input', atualizarValoresSocios);
   document.getElementById('socEditForm').addEventListener('submit', salvar);
+}
+
+function atualizarValoresSocios() {
+  const percentual = Number(document.getElementById('percentualDivisao').value || 0);
+  const valorDavid = (valorLiquidoAtual * percentual) / 100;
+  const valorAlexandre = valorLiquidoAtual - valorDavid;
+
+  document.getElementById('valorDavid').value = formatarMoeda(valorDavid);
+  document.getElementById('valorAlexandre').value = formatarMoeda(valorAlexandre);
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
 }
 
 async function salvar(e) {
@@ -32,12 +53,16 @@ async function salvar(e) {
     anexo = { nome: arquivo.name, url: up.secure_url || up.url, publicId: up.public_id };
   }
 
+  const percentualDivisao = Number(document.getElementById('percentualDivisao').value || 50);
+  const valorDavid = (valorLiquidoAtual * percentualDivisao) / 100;
+  const valorAlexandre = valorLiquidoAtual - valorDavid;
+
   await update(ref(database, `sociedade/${itemId}`), {
-    percentualDivisao: Number(document.getElementById('percentualDivisao').value || 50),
+    percentualDivisao,
     pagamentoDavid: document.getElementById('pagamentoDavid').value || null,
     pagamentoAlexandre: document.getElementById('pagamentoAlexandre').value || null,
-    valorDavid: document.getElementById('valorDavid').value || '',
-    valorAlexandre: document.getElementById('valorAlexandre').value || '',
+    valorDavid,
+    valorAlexandre,
     anexoSociedade: anexo,
     alteradoEm: new Date().toISOString()
   });

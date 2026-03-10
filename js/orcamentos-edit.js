@@ -105,11 +105,11 @@ export async function init(editId = null) {
     } else {
         document.getElementById('formTitulo').textContent = 'Novo Orçamento';
         document.getElementById('dataContato').value = getLocalDateValue();
-    }
     
-    // Carregar estados e municípios
-    await carregarEstados();
-    await carregarMunicipios();
+        // Carregar estados e municípios para novo orçamento
+        await carregarEstados();
+        await carregarMunicipios();
+    }
     
     // Configurar eventos
     document.getElementById('orcamentoForm').onsubmit = salvarOrcamento;
