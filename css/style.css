@@ -803,11 +803,11 @@ body {
 
 .kanban-column {
     min-width: 320px;
-    background: var(--creme);
-    border-radius: 12px;
+    background: #fcfcfd;
+    border-radius: 14px;
     padding: 15px;
-    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.1);
-    border: 1px solid var(--marrom-claro);
+    box-shadow: 0 8px 20px rgba(34, 42, 53, 0.08);
+    border: 1px solid #eceff4;
 }
 
 .kanban-column .column-header {
@@ -816,7 +816,13 @@ body {
     align-items: center;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 3px solid;
+    border-bottom: 2px solid;
+}
+
+.kanban-column .column-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
 }
 
 .kanban-column .cards-container {
@@ -834,14 +840,15 @@ body {
     cursor: move;
     transition: all 0.2s;
     border: 1px solid var(--marrom-claro);
-    box-shadow: 0 2px 4px rgba(139, 69, 19, 0.1);
+    box-shadow: 0 4px 10px rgba(34, 42, 53, 0.08);
     margin-bottom: 10px;
     background: white;
+    border-radius: 12px;
 }
 
 .kanban-column .card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(139, 69, 19, 0.15);
+    box-shadow: 0 10px 18px rgba(34, 42, 53, 0.14);
     border-color: var(--marrom-medio);
 }
 
@@ -1081,21 +1088,47 @@ label.required:after {
 
 .stat-card {
     background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(17, 24, 39, 0.07);
 }
 
 .stat-card h3 {
-    color: #666;
-    font-size: 0.9em;
+    color: #6b7280;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     margin-bottom: 5px;
 }
 
 .stat-card .number {
-    font-size: 2em;
-    font-weight: bold;
-    color: #1a237e;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.dashboard-event-filter .form-control,
+.dashboard-event-filter .btn {
+    font-size: 0.82rem;
+}
+
+.dashboard-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.card-body h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.45rem;
+    color: #111827;
+}
+
+.card-body p {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    color: #4b5563;
 }
 
 .cards-container {
@@ -1118,11 +1151,11 @@ label.required:after {
 
 .os-number {
     font-weight: bold;
-    color: #1a237e;
-    background: #e8eaf6;
+    color: #1f2937;
+    background: #eef2ff;
     padding: 4px 10px;
     border-radius: 5px;
-    font-size: 0.85em;
+    font-size: 0.75rem;
     display: inline-block;
 }
 
@@ -1130,8 +1163,8 @@ label.required:after {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85em;
-    color: #666;
+    font-size: 0.76rem;
+    color: #6b7280;
     border-top: 1px solid #eee;
     padding-top: 10px;
     margin-top: 10px;
@@ -1190,7 +1223,8 @@ label.required:after {
 }
 
 .calendar-header h3 {
-    color: #1a237e;
+    color: #1f2937;
+    font-size: 1.1rem;
     text-transform: capitalize;
 }
 
@@ -1202,6 +1236,7 @@ label.required:after {
 
 .weekday {
     font-weight: 600;
+    font-size: 0.82rem;
     text-align: center;
     padding: 10px;
     background: #f8f9fa;
@@ -1221,7 +1256,8 @@ label.required:after {
 
 .day-number {
     font-weight: bold;
-    color: #1a237e;
+    color: #1f2937;
+    font-size: 0.85rem;
     margin-bottom: 8px;
 }
 
@@ -1247,6 +1283,7 @@ label.required:after {
 
 .event-title {
     font-weight: 500;
+    font-size: 0.78rem;
     color: #333;
     white-space: nowrap;
     overflow: hidden;
@@ -1254,7 +1291,7 @@ label.required:after {
 }
 
 .event-status {
-    font-size: 0.8em;
+    font-size: 0.72rem;
     color: #666;
 }
 

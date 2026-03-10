@@ -32,6 +32,7 @@ let listaOrcamentos = [];
 let termoBusca = '';
 let modoVisualizacao = 'kanban';
 let draggedItem = null;
+let dataFiltroEvento = '';
 
 export async function initDashboard() {
     await checkAuth(3);
@@ -53,6 +54,14 @@ export async function initDashboard() {
         render();
     });
 
+    document.getElementById('filtroDataEvento')?.addEventListener('change', (e) => {
+        dataFiltroEvento = e.target.value || '';
+    });
+
+    document.getElementById('btnVerEventosData')?.addEventListener('click', () => {
+        mostrarEventosPorData();
+    });
+
     onValue(ref(database, 'statusOrc'), (snapshot) => {
         const dados = snapshot.val() || {};
         lista = Object.keys(dados).map((id) => ({ id, ...dados[id] }));
@@ -64,6 +73,50 @@ export async function initDashboard() {
         listaOrcamentos = Object.keys(dados).map((id) => ({ id, ...dados[id] }));
         render();
     });
+}
+
+function obterItensCalendario() {
+    return listaOrcamentos.length > 0
+        ? listaOrcamentos
+            .map((orc) => ({
+                id: orc.id,
+                clienteEmpresa: orc.projeto?.clienteEmpresa || orc.clienteEmpresa || 'Sem cliente',
+                dataProximoEvento: orc.datas?.dataProximoEvento || orc.dataProximoEvento || null,
+                statusProxMissao: orc.statusProxMissaro || orc.statusProxMissao || null,
+                status: orc.status || 'aguardando'
+            }))
+            .filter((orc) => (orc.clienteEmpresa || '').toLowerCase().includes(termoBusca))
+        : lista.filter((item) => (item.clienteEmpresa || '').toLowerCase().includes(termoBusca))
+            .map((item) => ({
+                ...item,
+                dataProximoEvento: item.proximoEventoData,
+                statusProxMissao: item.proximoEvento || item.statusProxMissaro || item.statusProxMissao
+            }));
+}
+
+function mostrarEventosPorData() {
+    if (!dataFiltroEvento) {
+        window.alert('Selecione uma data para visualizar os próximos eventos.');
+        return;
+    }
+
+    const eventos = obterItensCalendario().filter((item) => item.dataProximoEvento === dataFiltroEvento);
+
+    if (eventos.length === 0) {
+        window.alert(`Nenhum orçamento com próximo evento em ${formatarData(dataFiltroEvento)}.`);
+        return;
+    }
+
+    const linhas = eventos
+        .slice(0, 25)
+        .map((item) => `• #${item.id} - ${item.clienteEmpresa || 'Sem cliente'} (${STATUS_LABELS[item.statusProxMissao] || '-'})`)
+        .join('\n');
+
+    const avisoLimite = eventos.length > 25
+        ? `\n\n...e mais ${eventos.length - 25} registro(s).`
+        : '';
+
+    window.alert(`Próximos eventos em ${formatarData(dataFiltroEvento)}:\n\n${linhas}${avisoLimite}`);
 }
 
 function atualizarBotoesVisualizacao() {
@@ -85,7 +138,7 @@ function render() {
     );
 
     if (modoVisualizacao === 'calendar') {
-        renderCalendario(content, filtrados);
+        renderCalendario(content);
         return;
     }
 
@@ -297,7 +350,7 @@ async function drop(event) {
     ]);
 }
 
-function renderCalendario(container, itens) {
+function renderCalendario(container) {
     const hoje = new Date();
     const ano = hoje.getFullYear();
     const mes = hoje.getMonth();
@@ -306,21 +359,7 @@ function renderCalendario(container, itens) {
     const inicioSemana = primeiroDia.getDay();
 
     const eventosPorDia = {};
-    const itensCalendario = listaOrcamentos.length > 0
-        ? listaOrcamentos
-            .map((orc) => ({
-                id: orc.id,
-                clienteEmpresa: orc.projeto?.clienteEmpresa || orc.clienteEmpresa || 'Sem cliente',
-                dataProximoEvento: orc.datas?.dataProximoEvento || orc.dataProximoEvento || null,
-                statusProxMissao: orc.statusProxMissaro || orc.statusProxMissao || null,
-                status: orc.status || 'aguardando'
-            }))
-            .filter((orc) => (orc.clienteEmpresa || '').toLowerCase().includes(termoBusca))
-        : itens.map((item) => ({
-            ...item,
-            dataProximoEvento: item.proximoEventoData,
-            statusProxMissao: item.proximoEvento || item.statusProxMissaro || item.statusProxMissao
-        }));
+    const itensCalendario = obterItensCalendario();
 
     itensCalendario.forEach((item) => {
         if (!item.dataProximoEvento) return;
