@@ -1257,29 +1257,63 @@ label.required:after {
 }
 
 .calendar-header {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.calendar-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #d1d9e6;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 6px 12px;
+}
+
+.calendar-back-btn:hover {
+    background: #f8fafc;
 }
 
 .calendar-header h3 {
     color: #1f2937;
-    font-size: 1.1rem;
+    font-size: clamp(0.9rem, 2vw, 1.05rem);
+    margin: 0;
     text-transform: capitalize;
+}
+
+.calendar-header p {
+    width: 100%;
+    margin: 0;
+    font-size: 0.78rem;
 }
 
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: clamp(2px, 0.8vw, 8px);
+    width: 100%;
 }
 
 .weekday {
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: clamp(0.56rem, 1.6vw, 0.78rem);
     text-align: center;
-    padding: 10px;
+    padding: clamp(4px, 0.8vw, 8px) 2px;
     background: #f8f9fa;
     border-radius: 5px;
     color: #333;
+}
+
+.calendar-day {
+    min-width: 0;
+    padding: clamp(3px, 0.8vw, 8px);
 }
 
 .calendar-day.empty {
@@ -1293,23 +1327,23 @@ label.required:after {
 }
 
 .day-number {
-    font-weight: bold;
+    font-weight: 700;
     color: #1f2937;
-    font-size: 0.85rem;
-    margin-bottom: 8px;
+    font-size: clamp(0.62rem, 1.8vw, 0.84rem);
+    margin-bottom: 5px;
 }
 
 .day-events {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
 }
 
 .calendar-event {
     background: #f0f0f0;
-    padding: 5px;
+    padding: clamp(2px, 0.6vw, 5px);
     border-radius: 4px;
-    font-size: 0.85em;
+    font-size: clamp(0.56rem, 1.6vw, 0.72rem);
     cursor: pointer;
     transition: background-color 0.2s;
     border-left: 3px solid #1a237e;
@@ -1321,7 +1355,7 @@ label.required:after {
 
 .event-title {
     font-weight: 500;
-    font-size: 0.78rem;
+    font-size: clamp(0.54rem, 1.5vw, 0.72rem);
     color: #333;
     white-space: nowrap;
     overflow: hidden;
@@ -1329,23 +1363,22 @@ label.required:after {
 }
 
 .event-status {
-    font-size: 0.72rem;
+    font-size: clamp(0.5rem, 1.4vw, 0.65rem);
     color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .no-events {
     color: #999;
-    font-size: 0.85em;
+    font-size: clamp(0.5rem, 1.4vw, 0.62rem);
     text-align: center;
-    padding: 5px;
+    padding: 3px;
 }
 
 @media (max-width: 768px) {
-    .weekday {
-        display: none;
-    }
-
     .calendar-grid {
-        grid-template-columns: repeat(1, 1fr);
+        gap: 2px;
     }
 }

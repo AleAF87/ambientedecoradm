@@ -218,7 +218,7 @@ function render() {
             kanbanScrollLeft = quadroKanban.scrollLeft;
         });
     }
-    
+
     habilitarDragAndDrop();
 }
 
@@ -424,6 +424,10 @@ function renderCalendario(container) {
 
     container.innerHTML = `
         <div class="calendar-header">
+            <button id="btnBackKanban" class="calendar-back-btn" type="button" title="Voltar para colunas">
+                <i class="fas fa-table-columns"></i>
+                <span>Colunas</span>
+            </button>
             <h3>${hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h3>
             <p class="text-muted">Visualização do calendário baseada em "próximo evento"</p>
         </div>
@@ -438,6 +442,12 @@ function renderCalendario(container) {
             ${diasHtml}
         </div>
     `;
+
+    document.getElementById('btnBackKanban')?.addEventListener('click', () => {
+        modoVisualizacao = 'kanban';
+        atualizarBotoesVisualizacao();
+        render();
+    });
 }
 
 function formatarData(data) {
