@@ -33,6 +33,7 @@ let termoBusca = '';
 let modoVisualizacao = 'kanban';
 let draggedItem = null;
 let dataFiltroEvento = '';
+let kanbanScrollLeft = 0;
 
 export async function initDashboard() {
     await checkAuth(3);
@@ -133,6 +134,11 @@ function render() {
     const content = document.getElementById('dashboard-content');
     if (!content) return;
 
+    const quadroAtual = document.getElementById('kanbanBoard');
+    if (quadroAtual) {
+        kanbanScrollLeft = quadroAtual.scrollLeft;
+    }
+
     const filtrados = lista.filter((item) => 
         (item.clienteEmpresa || '').toLowerCase().includes(termoBusca)
     );
@@ -170,6 +176,12 @@ function render() {
     }).length;
 
     content.innerHTML = `
+        <div class="dashboard-top-actions mb-3">
+            <button id="btnQuickCalendar" class="quick-calendar-btn" type="button" title="Abrir calendário">
+                <i class="fas fa-calendar-day"></i>
+                <span>Agenda</span>
+            </button>
+        </div>
         <div class="stats mb-4">
             <div class="stat-card">
                 <h3>Total de Orçamentos</h3>
@@ -193,6 +205,20 @@ function render() {
         </div>
     `;
 
+    document.getElementById('btnQuickCalendar')?.addEventListener('click', () => {
+        modoVisualizacao = 'calendar';
+        atualizarBotoesVisualizacao();
+        render();
+    });
+
+    const quadroKanban = document.getElementById('kanbanBoard');
+    if (quadroKanban) {
+        quadroKanban.scrollLeft = kanbanScrollLeft;
+        quadroKanban.addEventListener('scroll', () => {
+            kanbanScrollLeft = quadroKanban.scrollLeft;
+        });
+    }
+    
     habilitarDragAndDrop();
 }
 

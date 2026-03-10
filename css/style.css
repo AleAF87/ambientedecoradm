@@ -1118,6 +1118,44 @@ label.required:after {
     color: #111827;
 }
 
+.dashboard-top-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.quick-calendar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #dbe2f0;
+    border-radius: 999px;
+    padding: 8px 14px;
+    background: #fff;
+    color: #334155;
+    font-size: 0.86rem;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    transition: all 0.2s ease;
+}
+
+.quick-calendar-btn i {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    color: #fff;
+    font-size: 0.75rem;
+}
+
+.quick-calendar-btn:hover {
+    transform: translateY(-1px);
+    border-color: #bfd0ee;
+    box-shadow: 0 6px 12px rgba(15, 23, 42, 0.12);
+}
+
 .card-body h3 {
     font-size: 0.95rem;
     font-weight: 600;
