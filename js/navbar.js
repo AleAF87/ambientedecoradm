@@ -181,9 +181,10 @@ function setupMobileNavbarCollapse() {
         if (!isExpanded) return;
 
         const clickedInNavbar = event.target.closest('.navbar');
-        const clickedNavLink = event.target.closest('#mainNavbar .nav-link');
+        const clickedNavLink = event.target.closest('#mainNavbar a[href]');
+        const isMobileTogglerVisible = window.getComputedStyle(toggler).display !== 'none';
 
-        if (clickedNavLink || !clickedInNavbar) {
+        if ((clickedNavLink && isMobileTogglerVisible) || !clickedInNavbar) {
             collapseInstance.hide();
         }
     });

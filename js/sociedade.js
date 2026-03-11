@@ -28,17 +28,62 @@ function render() {
   const itens = lista.filter(i => {
     const okBusca = (i.clienteEmpresa || '').toLowerCase().includes(busca);
     const okStatus = !status || i.status === status;
-    const okSaldo = !soSaldo || i.temSaldoPendente === true;
+    const okSaldo = !soSaldo || Number(i.financeiro?.saldo ?? i.saldo ?? 0) > 0 || i.temSaldoPendente === true;
     return okBusca && okStatus && okSaldo;
   });
 
-  const el = document.getElementById('sociedadeLista');
-  el.innerHTML = itens.map(i => `
-    <button class="list-group-item list-group-item-action" onclick="window.abrirSociedade('${i.id}')">
-      <div class="d-flex justify-content-between"><strong>${i.clienteEmpresa || '-'}</strong><span>${i.status || '-'}</span></div>
-      <small>Data contato: ${i.dataContato || '-'} | Saldo pendente: ${i.temSaldoPendente ? 'Sim' : 'Não'}</small>
-    </button>
-  `).join('') || '<p class="text-muted">Nenhum lançamento.</p>';
+  atualizarCards(itens);
+
+  const el = document.getElementById('sociedadeTableBody');
+  if (!el) return;
+
+  if (!itens.length) {
+    el.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
+    return;
+  }
+
+  el.innerHTML = itens.map(i => {
+    const valorLiquido = Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0);
+    const saldo = Number(i.financeiro?.saldo ?? i.saldo ?? 0);
+    const totalPagamentos = Number(i.financeiro?.totalPagamentos ?? i.totalPagamentos ?? 0);
+
+    return `
+      <tr>
+        <td><strong>${i.clienteEmpresa || '-'}</strong></td>
+        <td><span class="badge text-bg-secondary">${i.status || '-'}</span></td>
+        <td>${formatarMoeda(valorLiquido)}</td>
+        <td class="${saldo > 0 ? 'text-warning fw-semibold' : 'text-success fw-semibold'}">${formatarMoeda(saldo)}</td>
+        <td>${formatarMoeda(totalPagamentos)}</td>
+        <td>${i.dataContato || '-'}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.abrirSociedade('${i.id}')">
+            <i class="fas fa-edit"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function atualizarCards(itens) {
+  const totalProjetos = itens.length;
+  const valorLiquidoTotal = itens.reduce((acc, i) => acc + Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0), 0);
+  const saldoTotal = itens.reduce((acc, i) => acc + Number(i.financeiro?.saldo ?? i.saldo ?? 0), 0);
+  const totalRecebido = itens.reduce((acc, i) => acc + Number(i.financeiro?.totalPagamentos ?? i.totalPagamentos ?? 0), 0);
+
+  const setText = (id, value) => {
+    const target = document.getElementById(id);
+    if (target) target.textContent = value;
+  };
+
+  setText('cardTotalProjetos', String(totalProjetos));
+  setText('cardValorLiquido', formatarMoeda(valorLiquidoTotal));
+  setText('cardSaldo', formatarMoeda(saldoTotal));
+  setText('cardTotalPagamentos', formatarMoeda(totalRecebido));
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 window.abrirSociedade = (id) => window.app?.loadPage ? window.app.loadPage(`sociedade-edit.html?id=${id}`) : (window.location.href = `sociedade-edit.html?id=${id}`);

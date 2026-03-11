@@ -178,10 +178,10 @@ function atualizarTabela() {
     tbody.innerHTML = orcamentosPagina.map(orc => {
         const statusAtual = orc.status || orc.projeto?.status || '';
         const status = STATUS_CONFIG[statusAtual] || { icon: '📋', label: statusAtual || 'Sem status', color: '#6c757d' };
-        const saldoAtual = Number(orc.saldo ?? orc.financeiro?.saldo ?? 0);
+        const saldoAtual = Number(orc.financeiro?.saldo ?? orc.saldo ?? 0);
         const valorBruto = Number(orc.valorBruto ?? orc.financeiro?.valorBruto ?? 0);
         const clienteEmpresa = orc.clienteEmpresa || orc.projeto?.clienteEmpresa || '---';
-        const descricao = orc.descricao || orc.projeto?.descricao || '---';
+        const descricao = orc.projeto?.descricao || orc.descricao || '---';
         const dataContato = orc.dataContato || orc.datas?.dataContato;
         const saldoClass = saldoAtual > 0 ? 'text-warning' : 'text-success';
         
@@ -189,7 +189,7 @@ function atualizarTabela() {
             <tr>
                 <td><small class="text-muted">${orc.id}</small></td>
                 <td><strong>${clienteEmpresa}</strong></td>
-                <td>${descricao.substring(0, 50)}${descricao.length > 50 ? '...' : ''}</td>
+                <td><span title="${descricao.replace(/"/g, '&quot;')}">${descricao.substring(0, 30)}${descricao.length > 30 ? '...' : ''}</span></td>
                 <td>
                     <span class="badge" style="background-color: ${status.color}">
                         ${status.icon} ${status.label}
@@ -199,11 +199,8 @@ function atualizarTabela() {
                 <td class="${saldoClass} fw-bold">R$ ${formatarMoeda(saldoAtual)}</td>
                 <td>${formatarData(dataContato)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarOrcamento('${orc.id}')">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editarOrcamento('${orc.id}')">
                         <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" onclick="verOrcamento('${orc.id}')">
-                        <i class="fas fa-eye"></i>
                     </button>
                 </td>
             </tr>
