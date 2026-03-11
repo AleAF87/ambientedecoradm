@@ -34,6 +34,8 @@ let modoVisualizacao = 'kanban';
 let draggedItem = null;
 let dataFiltroEvento = '';
 let kanbanScrollLeft = 0;
+let calendarMonth = new Date().getMonth();
+let calendarYear = new Date().getFullYear();
 
 export async function initDashboard() {
     await checkAuth(3);
@@ -378,8 +380,9 @@ async function drop(event) {
 
 function renderCalendario(container) {
     const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = hoje.getMonth();
+    const ano = calendarYear;
+    const mes = calendarMonth;
+    const tituloReferencia = new Date(ano, mes, 1);
     const primeiroDia = new Date(ano, mes, 1);
     const ultimoDia = new Date(ano, mes + 1, 0);
     const inicioSemana = primeiroDia.getDay();
@@ -424,11 +427,25 @@ function renderCalendario(container) {
 
     container.innerHTML = `
         <div class="calendar-header">
-            <button id="btnBackKanban" class="calendar-back-btn" type="button" title="Voltar para colunas">
-                <i class="fas fa-table-columns"></i>
-                <span>Colunas</span>
-            </button>
-            <h3>${hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h3>
+            <div class="calendar-controls">
+                <button id="btnBackKanban" class="calendar-back-btn" type="button" title="Voltar para colunas">
+                    <i class="fas fa-table-columns"></i>
+                    <span>Colunas</span>
+                </button>
+                <div class="calendar-period-selectors">
+                    <select id="calendarMonthSelect" class="calendar-period-select" aria-label="Selecionar mês">
+                        ${['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+                            .map((nomeMes, indice) => `<option value="${indice}" ${indice === mes ? 'selected' : ''}>${nomeMes}</option>`)
+                            .join('')}
+                    </select>
+                    <select id="calendarYearSelect" class="calendar-period-select" aria-label="Selecionar ano">
+                        ${Array.from({ length: 11 }, (_, indice) => hoje.getFullYear() - 5 + indice)
+                            .map((anoItem) => `<option value="${anoItem}" ${anoItem === ano ? 'selected' : ''}>${anoItem}</option>`)
+                            .join('')}
+                    </select>
+                </div>
+            </div>
+            <h3>${tituloReferencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h3>
             <p class="text-muted">Visualização do calendário baseada em "próximo evento"</p>
         </div>
         <div class="calendar-grid">
@@ -446,6 +463,16 @@ function renderCalendario(container) {
     document.getElementById('btnBackKanban')?.addEventListener('click', () => {
         modoVisualizacao = 'kanban';
         atualizarBotoesVisualizacao();
+        render();
+    });
+
+    document.getElementById('calendarMonthSelect')?.addEventListener('change', (event) => {
+        calendarMonth = Number(event.target.value);
+        render();
+    });
+
+    document.getElementById('calendarYearSelect')?.addEventListener('change', (event) => {
+        calendarYear = Number(event.target.value);
         render();
     });
 }

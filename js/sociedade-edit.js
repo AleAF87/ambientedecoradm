@@ -32,8 +32,18 @@ function atualizarValoresSocios() {
   const valorDavid = (valorLiquidoAtual * percentual) / 100;
   const valorAlexandre = valorLiquidoAtual - valorDavid;
 
-  document.getElementById('valorDavid').value = formatarMoeda(valorDavid);
-  document.getElementById('valorAlexandre').value = formatarMoeda(valorAlexandre);
+  const campoDavid = document.getElementById('valorDavid');
+  const campoAlexandre = document.getElementById('valorAlexandre');
+
+  if (campoDavid) {
+    if ('value' in campoDavid) campoDavid.value = formatarMoeda(valorDavid);
+    else campoDavid.textContent = formatarMoeda(valorDavid);
+  }
+
+  if (campoAlexandre) {
+    if ('value' in campoAlexandre) campoAlexandre.value = formatarMoeda(valorAlexandre);
+    else campoAlexandre.textContent = formatarMoeda(valorAlexandre);
+  }
 }
 
 function formatarMoeda(valor) {

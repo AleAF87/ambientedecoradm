@@ -1264,6 +1264,31 @@ label.required:after {
     flex-wrap: wrap;
 }
 
+.calendar-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.calendar-period-selectors {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.calendar-period-select {
+    border: 1px solid #d1d9e6;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    outline: none;
+}
+
 .calendar-back-btn {
     display: inline-flex;
     align-items: center;
@@ -1314,6 +1339,12 @@ label.required:after {
 .calendar-day {
     min-width: 0;
     padding: clamp(3px, 0.8vw, 8px);
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    min-height: clamp(90px, 12vw, 150px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .calendar-day.empty {
@@ -1337,6 +1368,9 @@ label.required:after {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
+    overflow-y: auto;
+    max-height: clamp(58px, 8vw, 106px);
 }
 
 .calendar-event {
@@ -1347,6 +1381,9 @@ label.required:after {
     cursor: pointer;
     transition: background-color 0.2s;
     border-left: 3px solid #1a237e;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .calendar-event:hover {
@@ -1377,8 +1414,73 @@ label.required:after {
     padding: 3px;
 }
 
+
+.socio-valor-card {
+    border: 1px solid #dbe3ef;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 86px;
+    justify-content: center;
+}
+
+.socio-valor-card .socio-label {
+    color: #475569;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.socio-valor-card .socio-value {
+    color: #0f172a;
+    font-size: 1.2rem;
+    line-height: 1.1;
+}
+
+.socio-david {
+    border-left: 4px solid #2563eb;
+}
+
+.socio-alexandre {
+    border-left: 4px solid #7c3aed;
+}
+
 @media (max-width: 768px) {
     .calendar-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 2px;
+    }
+
+    .weekday {
+        font-size: 0.52rem;
+        padding: 4px 1px;
+    }
+
+    .calendar-day {
+        min-height: 74px;
+        padding: 3px;
+    }
+
+    .day-number {
+        margin-bottom: 3px;
+        font-size: 0.58rem;
+    }
+
+    .day-events {
+        gap: 2px;
+        max-height: 50px;
+    }
+
+    .calendar-event {
+        padding: 2px 3px;
+        border-left-width: 2px;
+    }
+
+    .event-title,
+    .event-status,
+    .no-events {
+        font-size: 0.45rem;
     }
 }
