@@ -53,11 +53,24 @@ function mascaraMoeda(input) {
     let centavos = valor.slice(-2);
     let inteiros = valor.slice(0, -2);
     
+    // Remover zeros à esquerda (mantendo apenas um zero quando necessário)
+    inteiros = inteiros.replace(/^0+(?=\d)/, '');
+    if (inteiros === '') {
+        inteiros = '0';
+    }
+
     // Adicionar pontos a cada 3 dígitos nos inteiros
     inteiros = inteiros.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     
     // Juntar com vírgula e centavos
     input.value = inteiros + ',' + centavos;
+}
+
+function formatarValorInputMoeda(valor) {
+    return Number(valor || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
 // Converter string monetária para número
@@ -469,7 +482,7 @@ async function salvarOrcamento(e) {
     const descricao = document.getElementById('descricao').value;
     const dataContato = document.getElementById('dataContato').value;
     
-    if (!clienteEmpresa || !descricao || !dataContato) {
+    if (!clienteEmpresa || !dataContato) {
         alert('Preencha todos os campos obrigatórios (*)');
         return;
     }
@@ -579,6 +592,8 @@ async function salvarOrcamento(e) {
             bairro: dadosParaSalvar.endereco.bairro || '',
             temSaldoPendente: saldo !== 0,
             valorBruto,
+            descricao: dadosParaSalvar.projeto.descricao || '',
+            saldo,
             dataContato,
             ultimaAlteracao: agora,
             criadoEm: dadosParaSalvar.criadoEm || agora
@@ -635,10 +650,7 @@ window.abrirModalAlteracao = function(editarId = null) {
         document.getElementById('alteracaoData').value = alteracao.data;
         document.getElementById('alteracaoTipo').value = alteracao.tipo;
         const valorAbsoluto = Math.abs(alteracao.valor);
-        document.getElementById('alteracaoValor').value = valorAbsoluto.toLocaleString('pt-BR', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        }).replace('.', ',');
+        document.getElementById('alteracaoValor').value = formatarValorInputMoeda(valorAbsoluto);
         document.getElementById('alteracaoDescricao').value = alteracao.descricao;
     } else {
         document.getElementById('alteracaoEditando').value = '';
@@ -658,7 +670,7 @@ window.salvarAlteracao = function() {
     const valor = converterMoedaParaNumero(document.getElementById('alteracaoValor').value);
     const descricao = document.getElementById('alteracaoDescricao').value;
     
-    if (!data || !valor || !descricao) {
+    if (!data || !valor) {
         alert('Preencha todos os campos');
         return;
     }
@@ -740,10 +752,7 @@ window.abrirModalCusto = function(editarId = null) {
         const custo = dadosOrcamento.financeiro.custos[editarId];
         document.getElementById('custoEditando').value = editarId;
         document.getElementById('custoData').value = custo.data;
-        document.getElementById('custoValor').value = custo.valor.toLocaleString('pt-BR', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        }).replace('.', ',');
+        document.getElementById('custoValor').value = formatarValorInputMoeda(custo.valor);
         document.getElementById('custoDescricao').value = custo.descricao;
     } else {
         document.getElementById('custoEditando').value = '';
@@ -761,7 +770,7 @@ window.salvarCusto = function() {
     const valor = converterMoedaParaNumero(document.getElementById('custoValor').value);
     const descricao = document.getElementById('custoDescricao').value;
     
-    if (!data || !valor || !descricao) {
+    if (!data || !valor) {
         alert('Preencha todos os campos');
         return;
     }
@@ -837,10 +846,7 @@ window.abrirModalPagamento = function(editarId = null) {
         const pagamento = dadosOrcamento.financeiro.pagamentos[editarId];
         document.getElementById('pagamentoEditando').value = editarId;
         document.getElementById('pagamentoData').value = pagamento.data;
-        document.getElementById('pagamentoValor').value = pagamento.valor.toLocaleString('pt-BR', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        }).replace('.', ',');
+        document.getElementById('pagamentoValor').value = formatarValorInputMoeda(pagamento.valor);
         document.getElementById('pagamentoDescricao').value = pagamento.descricao;
     } else {
         document.getElementById('pagamentoEditando').value = '';
@@ -858,7 +864,7 @@ window.salvarPagamento = function() {
     const valor = converterMoedaParaNumero(document.getElementById('pagamentoValor').value);
     const descricao = document.getElementById('pagamentoDescricao').value;
     
-    if (!data || !valor || !descricao) {
+    if (!data || !valor) {
         alert('Preencha todos os campos');
         return;
     }

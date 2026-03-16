@@ -1,6 +1,6 @@
 // js/orcamentos.js - Listagem de Orçamentos
 import { database } from './firebase-config.js';
-import { ref, onValue, query, limitToLast, orderByKey } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { checkAuth } from './auth-check.js';
 
 // Variáveis globais
@@ -40,31 +40,37 @@ if (document.readyState === 'loading') {
     init();
 }
 
-// Carregar orçamentos do Firebase (do nó statusOrc para economizar)
+// Carregar orçamentos do Firebase
 function carregarOrcamentos() {
     if (typeof firebaseUnsubscribe === 'function') {
         firebaseUnsubscribe();
         firebaseUnsubscribe = null;
     }
 
-    const statusRef = ref(database, 'statusOrc');
-    
-    firebaseUnsubscribe = onValue(statusRef, (snapshot) => {
-        if (snapshot.exists()) {
-            const dados = snapshot.val();
-            todosOrcamentos = Object.keys(dados).map(key => ({
-                id: key,
-                ...dados[key]
-            })).sort((a, b) => {
-                const dataA = a?.criadoEm || '';
-                const dataB = b?.criadoEm || '';
-                return String(dataB).localeCompare(String(dataA));
-            });
-            
-            orcamentosFiltrados = [...todosOrcamentos];
-            atualizarTabela();
-            atualizarPaginacao();
-        } else {
+    const carregarDeNo = (noPrincipal, noFallback = null) => {
+        firebaseUnsubscribe = onValue(ref(database, noPrincipal), (snapshot) => {
+            if (!snapshot.exists() && noFallback) {
+                carregarDeNo(noFallback, null);
+                return;
+            }
+
+            if (snapshot.exists()) {
+                const dados = snapshot.val();
+                todosOrcamentos = Object.keys(dados).map(key => ({
+                    id: key,
+                    ...dados[key]
+                })).sort((a, b) => {
+                    const dataA = a?.criadoEm || '';
+                    const dataB = b?.criadoEm || '';
+                    return String(dataB).localeCompare(String(dataA));
+                });
+
+                orcamentosFiltrados = [...todosOrcamentos];
+                atualizarTabela();
+                atualizarPaginacao();
+                return;
+            }
+
             todosOrcamentos = [];
             orcamentosFiltrados = [];
             document.getElementById('orcamentosTableBody').innerHTML = `
@@ -79,11 +85,13 @@ function carregarOrcamentos() {
                 </tr>
             `;
         atualizarPaginacao();
-        }
-    }, (error) => {
-        console.error('❌ Erro ao carregar orçamentos:', error);
-        mostrarErroCarregamento('Erro ao carregar orçamentos do Firebase. Verifique as permissões e tente novamente.');
-    });
+        }, (error) => {
+            console.error('❌ Erro ao carregar orçamentos:', error);
+            mostrarErroCarregamento('Erro ao carregar orçamentos do Firebase. Verifique as permissões e tente novamente.');
+        });
+    };
+
+    carregarDeNo('orcamentos', 'orcamento');
 }
 
 function mostrarErroCarregamento(mensagem) {

@@ -10,13 +10,24 @@ export async function initSociedade() {
   const select = document.getElementById('socStatus');
   select.innerHTML = STATUSS.map(s => `<option value="${s}">${s ? s : 'Todos status'}</option>`).join('');
 
-  ['socBusca','socStatus','socSaldo'].forEach(id => document.getElementById(id)?.addEventListener('input', render));
+  document.getElementById('socBusca')?.addEventListener('input', render);
+  document.getElementById('socStatus')?.addEventListener('change', render);
   document.getElementById('socSaldo')?.addEventListener('change', render);
 
   onValue(ref(database, 'sociedade'), (snapshot) => {
-    const dados = snapshot.val() || {};
-    lista = Object.keys(dados).map(id => ({ id, ...dados[id] }));
-    render();
+    if (snapshot.exists()) {
+      const dados = snapshot.val() || {};
+      lista = Object.keys(dados).map(id => ({ id, ...dados[id] }));
+      render();
+      return;
+    }
+
+    // Compatibilidade com bases antigas sem nó "sociedade"
+    onValue(ref(database, 'orcamentos'), (orcSnapshot) => {
+      const dados = orcSnapshot.val() || {};
+      lista = Object.keys(dados).map(id => ({ id, ...dados[id] }));
+      render();
+    });
   });
 }
 
@@ -26,7 +37,7 @@ function render() {
   const soSaldo = !!document.getElementById('socSaldo')?.checked;
 
   const itens = lista.filter(i => {
-    const okBusca = (i.clienteEmpresa || '').toLowerCase().includes(busca);
+    const okBusca = (i.clienteEmpresa || i.projeto?.clienteEmpresa || '').toLowerCase().includes(busca);
     const okStatus = !status || i.status === status;
     const okSaldo = !soSaldo || Number(i.financeiro?.saldo ?? i.saldo ?? 0) > 0 || i.temSaldoPendente === true;
     return okBusca && okStatus && okSaldo;
@@ -34,35 +45,61 @@ function render() {
 
   atualizarCards(itens);
 
-  const el = document.getElementById('sociedadeTableBody');
-  if (!el) return;
+  const tabelaBody = document.getElementById('sociedadeTableBody');
+  const listaContainer = document.getElementById('sociedadeLista');
 
   if (!itens.length) {
-    el.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
+    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
+    if (listaContainer) listaContainer.innerHTML = '<div class="text-center text-muted py-4">Nenhum lançamento.</div>';
     return;
   }
 
-  el.innerHTML = itens.map(i => {
-    const valorLiquido = Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0);
-    const saldo = Number(i.financeiro?.saldo ?? i.saldo ?? 0);
-    const totalPagamentos = Number(i.financeiro?.totalPagamentos ?? i.totalPagamentos ?? 0);
+  if (tabelaBody) {
+    tabelaBody.innerHTML = itens.map(i => {
+      const valorLiquido = Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0);
+      const saldo = Number(i.financeiro?.saldo ?? i.saldo ?? 0);
+      const totalPagamentos = Number(i.financeiro?.totalPagamentos ?? i.totalPagamentos ?? 0);
 
-    return `
-      <tr>
-        <td><strong>${i.clienteEmpresa || '-'}</strong></td>
-        <td><span class="badge text-bg-secondary">${i.status || '-'}</span></td>
-        <td>${formatarMoeda(valorLiquido)}</td>
-        <td class="${saldo > 0 ? 'text-warning fw-semibold' : 'text-success fw-semibold'}">${formatarMoeda(saldo)}</td>
-        <td>${formatarMoeda(totalPagamentos)}</td>
-        <td>${i.dataContato || '-'}</td>
-        <td>
+      return `
+        <tr>
+          <td><strong>${i.clienteEmpresa || i.projeto?.clienteEmpresa || '-'}</strong></td>
+          <td><span class="badge text-bg-secondary">${i.status || '-'}</span></td>
+          <td>${formatarMoeda(valorLiquido)}</td>
+          <td class="${saldo > 0 ? 'text-warning fw-semibold' : 'text-success fw-semibold'}">${formatarMoeda(saldo)}</td>
+          <td>${formatarMoeda(totalPagamentos)}</td>
+          <td>${i.dataContato || i.datas?.dataContato || '-'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.abrirSociedade('${i.id}')">
+              <i class="fas fa-edit"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  if (listaContainer) {
+    listaContainer.innerHTML = itens.map(i => {
+      const cliente = i.clienteEmpresa || i.projeto?.clienteEmpresa || '-';
+      const valorLiquido = Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0);
+      const saldo = Number(i.financeiro?.saldo ?? i.saldo ?? 0);
+      return `
+        <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+          <div>
+            <div class="fw-semibold">${cliente}</div>
+            <small class="text-muted">${i.status || '-'} • ${i.dataContato || i.datas?.dataContato || '-'}</small>
+          </div>
+          <div class="text-end">
+            <div>${formatarMoeda(valorLiquido)}</div>
+            <small class="${saldo > 0 ? 'text-warning' : 'text-success'}">Saldo: ${formatarMoeda(saldo)}</small>
+          </div>
           <button class="btn btn-sm btn-outline-primary" onclick="window.abrirSociedade('${i.id}')">
             <i class="fas fa-edit"></i>
           </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 function atualizarCards(itens) {
