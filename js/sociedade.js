@@ -2,19 +2,33 @@ import { checkAuth } from './auth-check.js';
 import { database } from './firebase-config.js';
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-const STATUSS = ['', 'fazer_visita','fazer_orcamento','medicao_fina','producao','montagem','aguardando','concluido','geladeira','cancelado'];
+const STATUSS = ['fazer_visita','fazer_orcamento','medicao_fina','producao','montagem','aguardando','concluido','geladeira','cancelado'];
 const STATUSS_OCULTOS = new Set(['fazer_visita', 'fazer_orcamento', 'geladeira', 'cancelado']);
+const STATUS_LABELS = {
+  fazer_visita: '🚪 Fazer Visita',
+  fazer_orcamento: '📝 Fazer Orçamento',
+  medicao_fina: '📏 Medição Fina',
+  producao: '🔨 Produção',
+  montagem: '🔧 Montagem',
+  aguardando: '⏳ Aguardando',
+  concluido: '✅ Concluído',
+  geladeira: '❄️ Geladeira',
+  cancelado: '🚫 Cancelado'
+};
 let lista = [];
 let financeiroOrcamentos = {};
 
 export async function initSociedade() {
   await checkAuth(3);
   const select = document.getElementById('socStatus');
-  select.innerHTML = STATUSS.map(s => `<option value="${s}">${s ? s : 'Todos status'}</option>`).join('');
+  select.innerHTML = ['<option value="">Todos status</option>']
+    .concat(STATUSS.map(s => `<option value="${s}">${STATUS_LABELS[s] || s}</option>`))
+    .join('');
 
   document.getElementById('socBusca')?.addEventListener('input', render);
   document.getElementById('socStatus')?.addEventListener('change', render);
   document.getElementById('socSaldo')?.addEventListener('change', render);
+  document.getElementById('socDivisaoPendente')?.addEventListener('change', render);
 
   onValue(ref(database, 'sociedade'), (snapshot) => {
     if (snapshot.exists()) {
@@ -52,6 +66,7 @@ function render() {
   const busca = (document.getElementById('socBusca')?.value || '').toLowerCase();
   const status = document.getElementById('socStatus')?.value || '';
   const soSaldo = !!document.getElementById('socSaldo')?.checked;
+  const soDivisaoPendente = !!document.getElementById('socDivisaoPendente')?.checked;
 
   const itens = lista.filter(i => {
     if (STATUSS_OCULTOS.has(i.status || '')) return false;
@@ -60,7 +75,8 @@ function render() {
     const okBusca = (i.clienteEmpresa || i.projeto?.clienteEmpresa || '').toLowerCase().includes(busca);
     const okStatus = !status || i.status === status;
     const okSaldo = !soSaldo || financeiro.saldo > 0 || i.temSaldoPendente === true;
-    return okBusca && okStatus && okSaldo;
+    const okDivisao = !soDivisaoPendente || !divisaoConcluida(i);
+    return okBusca && okStatus && okSaldo && okDivisao;
   });
 
   atualizarCards(itens);
@@ -69,7 +85,7 @@ function render() {
   const listaContainer = document.getElementById('sociedadeLista');
 
   if (!itens.length) {
-    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
+    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
     if (listaContainer) listaContainer.innerHTML = '<div class="text-center text-muted py-4">Nenhum lançamento.</div>';
     return;
   }
@@ -81,11 +97,12 @@ function render() {
       return `
         <tr>
           <td><strong>${i.clienteEmpresa || i.projeto?.clienteEmpresa || '-'}</strong></td>
-          <td><span class="badge text-bg-secondary">${i.status || '-'}</span></td>
+          <td><span class="badge text-bg-secondary">${obterStatusLabel(i.status)}</span></td>
           <td>${formatarMoeda(valorLiquido)}</td>
           <td class="${saldo > 0 ? 'text-warning fw-semibold' : 'text-success fw-semibold'}">${formatarMoeda(saldo)}</td>
           <td>${formatarMoeda(totalPagamentos)}</td>
-          <td>${i.dataContato || i.datas?.dataContato || '-'}</td>
+          <td>${formatarDataBr(i.dataContato || i.datas?.dataContato)}</td>
+          <td class="fw-semibold ${divisaoConcluida(i) ? 'text-success' : 'text-danger'}">${divisaoConcluida(i) ? 'v' : 'x'}</td>
           <td>
             <div class="d-flex gap-1">
               <button class="btn btn-sm btn-outline-success" title="Abrir sociedade" onclick="window.abrirSociedade('${i.id}')">
@@ -109,7 +126,7 @@ function render() {
         <div class="list-group-item sociedade-item d-flex justify-content-between align-items-center gap-3">
           <div class="sociedade-identificacao">
             <div class="fw-semibold sociedade-cliente">${cliente}</div>
-            <small class="text-muted">${i.status || '-'} • ${i.dataContato || i.datas?.dataContato || '-'}</small>
+            <small class="text-muted">${obterStatusLabel(i.status)} • ${formatarDataBr(i.dataContato || i.datas?.dataContato)}</small>
           </div>
           <div class="text-end sociedade-valores">
             <div class="fw-semibold">${formatarMoeda(valorLiquido)}</div>
@@ -144,6 +161,35 @@ function atualizarCards(itens) {
   setText('cardValorLiquido', formatarMoeda(valorLiquidoTotal));
   setText('cardSaldo', formatarMoeda(saldoTotal));
   setText('cardTotalPagamentos', formatarMoeda(totalRecebido));
+}
+
+
+function obterStatusLabel(status) {
+  if (!status) return '-';
+  return STATUS_LABELS[status] || status
+    .split('_')
+    .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
+    .join(' ');
+}
+
+function formatarDataBr(data) {
+  if (!data) return '-';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    const [ano, mes, dia] = data.split('-');
+    return `${dia}/${mes}/${ano}`;
+  }
+
+  const dt = new Date(data);
+  if (!Number.isNaN(dt.getTime())) {
+    return dt.toLocaleDateString('pt-BR');
+  }
+
+  return data;
+}
+
+function divisaoConcluida(item) {
+  return Boolean(item.pagamentoDavid && item.pagamentoAlexandre);
 }
 
 function formatarMoeda(valor) {

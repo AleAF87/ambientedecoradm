@@ -5,26 +5,55 @@ import { uploadImagemCloudinary } from './cloudinary-config.js';
 
 let itemId = null;
 let valorLiquidoAtual = 0;
+let saldoPendenteAtual = 0;
 
 export async function initSociedadeEdit(idFromSPA = null) {
   await checkAuth(3);
   itemId = idFromSPA || new URLSearchParams(window.location.search).get('id');
   if (!itemId) return;
 
-  const snapshot = await get(ref(database, `sociedade/${itemId}`));
-  const dados = snapshot.val() || {};
+  const [sociedadeSnapshot, orcamentoSnapshot] = await Promise.all([
+    get(ref(database, `sociedade/${itemId}`)),
+    get(ref(database, `orcamentos/${itemId}/financeiro`))
+  ]);
+  const dados = sociedadeSnapshot.val() || {};
+  const financeiroOrcamento = orcamentoSnapshot.val() || {};
 
-  valorLiquidoAtual = Number(dados.valorLiquido || 0);
+  valorLiquidoAtual = Number(financeiroOrcamento.valorLiquido ?? dados.valorLiquido ?? 0);
+  saldoPendenteAtual = Number(financeiroOrcamento.saldo ?? dados.saldo ?? 0);
 
   document.getElementById('valorLiquido').value = formatarMoeda(valorLiquidoAtual);
   document.getElementById('percentualDivisao').value = dados.percentualDivisao ?? 50;
   document.getElementById('pagamentoDavid').value = dados.pagamentoDavid || '';
   document.getElementById('pagamentoAlexandre').value = dados.pagamentoAlexandre || '';
   
+  atualizarDisponibilidadePagamentos();
   atualizarValoresSocios();
 
   document.getElementById('percentualDivisao')?.addEventListener('input', atualizarValoresSocios);
   document.getElementById('socEditForm').addEventListener('submit', salvar);
+}
+
+
+function atualizarDisponibilidadePagamentos() {
+  const possuiSaldoPendente = saldoPendenteAtual > 0;
+  const pagamentoDavid = document.getElementById('pagamentoDavid');
+  const pagamentoAlexandre = document.getElementById('pagamentoAlexandre');
+  const alerta = document.getElementById('saldoPendenteAlert');
+
+  if (pagamentoDavid) pagamentoDavid.disabled = possuiSaldoPendente;
+  if (pagamentoAlexandre) pagamentoAlexandre.disabled = possuiSaldoPendente;
+
+  if (!alerta) return;
+
+  if (possuiSaldoPendente) {
+    alerta.className = 'col-12 alert alert-warning mb-0';
+    alerta.textContent = `Há saldo pendente de ${formatarMoeda(saldoPendenteAtual)}. Preencha os pagamentos apenas quando o saldo for zerado.`;
+    return;
+  }
+
+  alerta.className = 'col-12 d-none';
+  alerta.textContent = '';
 }
 
 function atualizarValoresSocios() {
