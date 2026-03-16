@@ -102,7 +102,9 @@ function render() {
           <td class="${saldo > 0 ? 'text-warning fw-semibold' : 'text-success fw-semibold'}">${formatarMoeda(saldo)}</td>
           <td>${formatarMoeda(totalPagamentos)}</td>
           <td>${formatarDataBr(i.dataContato || i.datas?.dataContato)}</td>
-          <td class="fw-semibold ${divisaoConcluida(i) ? 'text-success' : 'text-danger'}">${divisaoConcluida(i) ? 'v' : 'x'}</td>
+          <td class="fw-semibold text-center ${divisaoConcluida(i) ? 'text-success' : 'text-danger'}">
+            <i class="fas ${divisaoConcluida(i) ? 'fa-circle-check' : 'fa-circle-xmark'}" aria-label="${divisaoConcluida(i) ? 'Verificado' : 'Não verificado'}" title="${divisaoConcluida(i) ? 'Verificado' : 'Não verificado'}"></i>
+          </td>
           <td>
             <div class="d-flex gap-1">
               <button class="btn btn-sm btn-outline-success" title="Abrir sociedade" onclick="window.abrirSociedade('${i.id}')">

@@ -107,6 +107,16 @@ async function salvar(e) {
   });
 
   alert('Registro de sociedade salvo com sucesso.');
+  voltarParaSociedade();
+}
+
+function voltarParaSociedade() {
+  if (window.app?.loadPage) {
+    window.app.loadPage('sociedade.html');
+    return;
+  }
+
+  window.location.href = 'sociedade.html';
 }
 
 if (!window.location.pathname.includes('app.html')) initSociedadeEdit();
