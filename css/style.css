@@ -1532,3 +1532,38 @@ label.required:after {
 .sociedade-table tbody tr:hover {
     background: #fcf8f3;
 }
+/* Sociedade */
+.sociedade-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.sociedade-table thead th {
+    background: #fffaf2;
+    color: var(--marrom-escuro);
+    font-weight: 600;
+    border-bottom: 2px solid rgba(139, 69, 19, 0.15);
+}
+
+.sociedade-table tbody tr {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sociedade-table tbody tr:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(139, 69, 19, 0.08);
+}
+
+.sociedade-item {
+    border: 1px solid rgba(139, 69, 19, 0.12);
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.sociedade-cliente {
+    color: var(--marrom-escuro);
+}
+
+.sociedade-valores {
+    min-width: 140px;
+}

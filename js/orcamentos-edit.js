@@ -36,6 +36,27 @@ const modeloDadosOrcamento = {
 // Dados do orçamento em memória
 let dadosOrcamento = structuredClone(modeloDadosOrcamento);
 
+function configurarRegrasStatus() {
+    const campoStatus = document.getElementById('status');
+    const campoStatusProxMissao = document.getElementById('statusProxMissao');
+    const campoDataProximoEvento = document.getElementById('dataProximoEvento');
+
+    if (!campoStatus || !campoStatusProxMissao || !campoDataProximoEvento) return;
+
+    campoStatus.addEventListener('change', () => {
+        if (['concluido', 'geladeira', 'cancelado'].includes(campoStatus.value)) {
+            campoStatusProxMissao.value = '';
+            campoDataProximoEvento.value = '';
+        }
+    });
+
+    campoStatusProxMissao.addEventListener('change', () => {
+        if (!campoStatusProxMissao.value) {
+            campoDataProximoEvento.value = '';
+        }
+    });
+}
+
 // Função de máscara para moeda
 function mascaraMoeda(input) {
     let valor = input.value.replace(/\D/g, '');
@@ -186,6 +207,7 @@ export async function init(editId = null) {
         }
     });
     
+    configurarRegrasStatus();
     atualizarResumoFinanceiro();
 }
 

@@ -3,7 +3,9 @@ import { database } from './firebase-config.js';
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const STATUSS = ['', 'fazer_visita','fazer_orcamento','medicao_fina','producao','montagem','aguardando','concluido','geladeira','cancelado'];
+const STATUSS_OCULTOS = new Set(['fazer_visita', 'fazer_orcamento', 'geladeira', 'cancelado']);
 let lista = [];
+let financeiroOrcamentos = {};
 
 export async function initSociedade() {
   await checkAuth(3);
@@ -29,6 +31,21 @@ export async function initSociedade() {
       render();
     });
   });
+  
+  onValue(ref(database, 'orcamentos'), (snapshot) => {
+    financeiroOrcamentos = snapshot.val() || {};
+    render();
+  });
+}
+
+function obterDadosFinanceiros(item) {
+  const financeiroOrcamento = financeiroOrcamentos?.[item.id]?.financeiro || {};
+
+  return {
+    valorLiquido: Number(financeiroOrcamento.valorLiquido ?? item.financeiro?.valorLiquido ?? item.valorLiquido ?? 0),
+    saldo: Number(financeiroOrcamento.saldo ?? item.financeiro?.saldo ?? item.saldo ?? 0),
+    totalPagamentos: Number(financeiroOrcamento.totalPagamentos ?? item.financeiro?.totalPagamentos ?? item.totalPagamentos ?? 0)
+  };
 }
 
 function render() {
@@ -37,9 +54,12 @@ function render() {
   const soSaldo = !!document.getElementById('socSaldo')?.checked;
 
   const itens = lista.filter(i => {
+    if (STATUSS_OCULTOS.has(i.status || '')) return false;
+
+    const financeiro = obterDadosFinanceiros(i);
     const okBusca = (i.clienteEmpresa || i.projeto?.clienteEmpresa || '').toLowerCase().includes(busca);
     const okStatus = !status || i.status === status;
-    const okSaldo = !soSaldo || Number(i.financeiro?.saldo ?? i.saldo ?? 0) > 0 || i.temSaldoPendente === true;
+    const okSaldo = !soSaldo || financeiro.saldo > 0 || i.temSaldoPendente === true;
     return okBusca && okStatus && okSaldo;
   });
 
@@ -56,9 +76,7 @@ function render() {
 
   if (tabelaBody) {
     tabelaBody.innerHTML = itens.map(i => {
-      const valorLiquido = Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0);
-      const saldo = Number(i.financeiro?.saldo ?? i.saldo ?? 0);
-      const totalPagamentos = Number(i.financeiro?.totalPagamentos ?? i.totalPagamentos ?? 0);
+      const { valorLiquido, saldo, totalPagamentos } = obterDadosFinanceiros(i);
 
       return `
         <tr>
@@ -69,9 +87,14 @@ function render() {
           <td>${formatarMoeda(totalPagamentos)}</td>
           <td>${i.dataContato || i.datas?.dataContato || '-'}</td>
           <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="window.abrirSociedade('${i.id}')">
-              <i class="fas fa-edit"></i>
-            </button>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-success" title="Abrir sociedade" onclick="window.abrirSociedade('${i.id}')">
+                <i class="fas fa-dollar-sign"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-primary" title="Editar orçamento" onclick="window.abrirOrcamento('${i.id}')">
+                <i class="fas fa-pen"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -81,21 +104,25 @@ function render() {
   if (listaContainer) {
     listaContainer.innerHTML = itens.map(i => {
       const cliente = i.clienteEmpresa || i.projeto?.clienteEmpresa || '-';
-      const valorLiquido = Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0);
-      const saldo = Number(i.financeiro?.saldo ?? i.saldo ?? 0);
+      const { valorLiquido, saldo } = obterDadosFinanceiros(i);
       return `
-        <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="fw-semibold">${cliente}</div>
+        <div class="list-group-item sociedade-item d-flex justify-content-between align-items-center gap-3">
+          <div class="sociedade-identificacao">
+            <div class="fw-semibold sociedade-cliente">${cliente}</div>
             <small class="text-muted">${i.status || '-'} • ${i.dataContato || i.datas?.dataContato || '-'}</small>
           </div>
-          <div class="text-end">
-            <div>${formatarMoeda(valorLiquido)}</div>
+          <div class="text-end sociedade-valores">
+            <div class="fw-semibold">${formatarMoeda(valorLiquido)}</div>
             <small class="${saldo > 0 ? 'text-warning' : 'text-success'}">Saldo: ${formatarMoeda(saldo)}</small>
           </div>
-          <button class="btn btn-sm btn-outline-primary" onclick="window.abrirSociedade('${i.id}')">
-            <i class="fas fa-edit"></i>
-          </button>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-success" title="Abrir sociedade" onclick="window.abrirSociedade('${i.id}')">
+              <i class="fas fa-dollar-sign"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary" title="Editar orçamento" onclick="window.abrirOrcamento('${i.id}')">
+              <i class="fas fa-pen"></i>
+            </button>
+          </div>
         </div>
       `;
     }).join('');
@@ -104,9 +131,9 @@ function render() {
 
 function atualizarCards(itens) {
   const totalProjetos = itens.length;
-  const valorLiquidoTotal = itens.reduce((acc, i) => acc + Number(i.financeiro?.valorLiquido ?? i.valorLiquido ?? 0), 0);
-  const saldoTotal = itens.reduce((acc, i) => acc + Number(i.financeiro?.saldo ?? i.saldo ?? 0), 0);
-  const totalRecebido = itens.reduce((acc, i) => acc + Number(i.financeiro?.totalPagamentos ?? i.totalPagamentos ?? 0), 0);
+  const valorLiquidoTotal = itens.reduce((acc, i) => acc + obterDadosFinanceiros(i).valorLiquido, 0);
+  const saldoTotal = itens.reduce((acc, i) => acc + obterDadosFinanceiros(i).saldo, 0);
+  const totalRecebido = itens.reduce((acc, i) => acc + obterDadosFinanceiros(i).totalPagamentos, 0);
 
   const setText = (id, value) => {
     const target = document.getElementById(id);
@@ -124,5 +151,6 @@ function formatarMoeda(valor) {
 }
 
 window.abrirSociedade = (id) => window.app?.loadPage ? window.app.loadPage(`sociedade-edit.html?id=${id}`) : (window.location.href = `sociedade-edit.html?id=${id}`);
+window.abrirOrcamento = (id) => window.app?.loadPage ? window.app.loadPage(`orcamentos-edit.html?id=${id}`) : (window.location.href = `orcamentos-edit.html?id=${id}`);
 
 if (!window.location.pathname.includes('app.html')) initSociedade();
