@@ -94,6 +94,14 @@ function normalizarAnexos(anexos) {
   return Object.values(anexos).filter((anexo) => anexo?.url);
 }
 
+function sanitizarAnexos(anexos) {
+  return normalizarAnexos(anexos).map((anexo, index) => ({
+    nome: anexo.nome || `Anexo ${index + 1}`,
+    url: anexo.url,
+    publicId: anexo.publicId ?? null
+  }));
+}
+
 function renderizarListaAnexosSociedade() {
   const container = document.getElementById('anexosSociedadeContainer');
   if (!container) return;
@@ -139,7 +147,7 @@ async function onClickAnexoSociedade(event) {
     anexosSociedade.splice(indice, 1);
 
     await update(ref(database, `sociedade/${itemId}`), {
-      anexoSociedade: anexosSociedade,
+      anexoSociedade: sanitizarAnexos(anexosSociedade),
       alteradoEm: new Date().toISOString()
     });
 
@@ -158,13 +166,17 @@ async function salvar(e) {
 
   for (const arquivo of arquivos) {
     const up = await uploadImagemCloudinary(arquivo, 'sociedade');
-    novosAnexos.push({ nome: arquivo.name, url: up.secure_url || up.url, publicId: up.public_id });
+    novosAnexos.push({
+      nome: arquivo.name,
+      url: up.secure_url || up.url,
+      publicId: up.public_id ?? up.publicId ?? null
+    });
   }
 
   const percentualDivisao = Number(document.getElementById('percentualDivisao').value || 50);
   const valorDavid = (valorLiquidoAtual * percentualDivisao) / 100;
   const valorAlexandre = valorLiquidoAtual - valorDavid;
-  const anexosAtualizados = [...anexosSociedade, ...novosAnexos];
+  const anexosAtualizados = sanitizarAnexos([...anexosSociedade, ...novosAnexos]);
 
   await update(ref(database, `sociedade/${itemId}`), {
     percentualDivisao,
