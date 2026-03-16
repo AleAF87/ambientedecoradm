@@ -35,10 +35,11 @@
           </div>
 
           <div class="col-12">
-            <button id="btnSelecionarAnexo" class="btn btn-outline-primary" type="button">Selecionar anexo (Cloudinary/sociedade)</button>
-            <input id="anexoSociedade" type="file" class="form-control mt-2" />
+            <input id="anexoSociedade" type="file" class="form-control" multiple />
             <small class="text-muted">O upload só é feito quando clicar em salvar.</small>
           </div>
+
+          <div class="col-12" id="anexosSociedadeContainer"></div>
 
           <div class="col-md-6">
             <div class="socio-valor-card socio-david">
@@ -54,7 +55,7 @@
           </div>
 
           <div class="col-12 d-flex gap-2 justify-content-end">
-            <button class="btn btn-outline-secondary" type="button" onclick="window.history.back()">Cancelar</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="cancelarEdicao()">Cancelar</button>
             <button class="btn btn-primary" type="submit">Salvar</button>
           </div>
         </form>

@@ -10,11 +10,11 @@ const cloudinaryConfig = {
 };
 
 // Função para upload de imagens
-export async function uploadImagemCloudinary(file) {
+export async function uploadImagemCloudinary(file, folder = cloudinaryConfig.folder) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', cloudinaryConfig.uploadPreset);
-    formData.append('folder', cloudinaryConfig.folder);
+    formData.append('folder', folder || cloudinaryConfig.folder);
 
     try {
         const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/auto/upload`, {
