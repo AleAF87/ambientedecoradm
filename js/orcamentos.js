@@ -1,6 +1,6 @@
 // js/orcamentos.js - Listagem de Orçamentos
 import { database } from './firebase-config.js';
-import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { checkAuth } from './auth-check.js';
 
 // Variáveis globais
@@ -222,9 +222,14 @@ function atualizarTabela() {
                 <td class="${saldoClass} fw-bold">R$ ${formatarMoeda(saldoAtual)}</td>
                 <td>${formatarData(dataContato)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editarOrcamento('${orc.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editarOrcamento('${orc.id}')" title="Editar orçamento">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deletarOrcamento('${orc.id}')" title="Deletar orçamento">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -289,6 +294,40 @@ window.editarOrcamento = function(id) {
         window.app.loadPage(`orcamentos-edit.html?id=${id}`);
     } else {
         window.location.href = `orcamentos-edit.html?id=${id}`;
+    }
+};
+
+window.deletarOrcamento = async function(id) {
+    const confirmouPrimeiraEtapa = window.confirm(`Deseja realmente excluir o orçamento ${id}?`);
+    if (!confirmouPrimeiraEtapa) return;
+
+    const confirmouSegundaEtapa = window.confirm('Esta ação é permanente e não poderá ser desfeita. Confirmar exclusão?');
+    if (!confirmouSegundaEtapa) return;
+
+    try {
+        const caminhosExclusao = [
+            `orcamentos/${id}`,
+            `orcamento/${id}`,
+            `sociedade/${id}`,
+            `statusOrc/${id}`,
+            `statusOrcamento/${id}`
+        ];
+
+        const resultados = await Promise.allSettled(
+            caminhosExclusao.map((caminho) => remove(ref(database, caminho)))
+        );
+
+        const sucessoEmAlgumNo = resultados.some(result => result.status === 'fulfilled');
+        if (!sucessoEmAlgumNo) {
+            throw new Error('Falha ao remover orçamento nos nós esperados do Firebase.');
+        }
+
+        todosOrcamentos = todosOrcamentos.filter(orc => orc.id !== id);
+        aplicarFiltros();
+        alert('Orçamento excluído com sucesso.');
+    } catch (error) {
+        console.error('❌ Erro ao deletar orçamento:', error);
+        alert('Não foi possível excluir o orçamento. Verifique as permissões no Firebase e tente novamente.');
     }
 };
 

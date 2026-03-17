@@ -77,7 +77,7 @@ function render() {
     const okSaldo = !soSaldo || financeiro.saldo > 0 || i.temSaldoPendente === true;
     const okDivisao = !soDivisaoPendente || !divisaoConcluida(i);
     return okBusca && okStatus && okSaldo && okDivisao;
-  });
+  }).sort((a, b) => obterTimestampContato(b) - obterTimestampContato(a));
 
   atualizarCards(itens);
 
@@ -85,7 +85,7 @@ function render() {
   const listaContainer = document.getElementById('sociedadeLista');
 
   if (!itens.length) {
-    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
+    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
     if (listaContainer) listaContainer.innerHTML = '<div class="text-center text-muted py-4">Nenhum lançamento.</div>';
     return;
   }
@@ -96,6 +96,7 @@ function render() {
 
       return `
         <tr>
+          <td class="text-nowrap">${i.id || '-'}</td>
           <td><strong>${i.clienteEmpresa || i.projeto?.clienteEmpresa || '-'}</strong></td>
           <td><span class="badge text-bg-secondary">${obterStatusLabel(i.status)}</span></td>
           <td>${formatarMoeda(valorLiquido)}</td>
@@ -187,6 +188,14 @@ function formatarDataBr(data) {
   }
 
   return data;
+}
+
+function obterTimestampContato(item) {
+  const data = item?.dataContato || item?.datas?.dataContato;
+  if (!data) return -Infinity;
+
+  const timestamp = Date.parse(data);
+  return Number.isNaN(timestamp) ? -Infinity : timestamp;
 }
 
 function divisaoConcluida(item) {

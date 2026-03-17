@@ -1180,6 +1180,14 @@ function formatarMoeda(valor) {
 // ========== UTILITÁRIOS ==========
 function formatarData(dataISO) {
     if (!dataISO) return '---';
+    
+    if (typeof dataISO === 'string') {
+        const somenteData = dataISO.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (somenteData) {
+            return `${somenteData[3]}/${somenteData[2]}/${somenteData[1]}`;
+        }
+    }
+
     const data = new Date(dataISO);
     if (Number.isNaN(data.getTime())) return '---';
     return data.toLocaleDateString('pt-BR');
