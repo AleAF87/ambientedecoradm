@@ -59,11 +59,9 @@ function carregarOrcamentos() {
                 todosOrcamentos = Object.keys(dados).map(key => ({
                     id: key,
                     ...dados[key]
-                })).sort((a, b) => {
-                    const dataA = a?.criadoEm || '';
-                    const dataB = b?.criadoEm || '';
-                    return String(dataB).localeCompare(String(dataA));
-                });
+                }));
+
+                ordenarOrcamentosPorDataContrato(todosOrcamentos);
 
                 orcamentosFiltrados = [...todosOrcamentos];
                 atualizarTabela();
@@ -151,6 +149,8 @@ function aplicarFiltros() {
         return matchesSearch && matchesStatus && matchesSaldo;
     });
     
+    ordenarOrcamentosPorDataContrato(orcamentosFiltrados);
+
     paginaAtual = 1;
     atualizarTabela();
     atualizarPaginacao();
@@ -224,7 +224,7 @@ function atualizarPaginacao() {
     const totalPaginas = Math.ceil(orcamentosFiltrados.length / ITENS_POR_PAGINA);
     const paginacao = document.getElementById('paginacao');
     
-    if (totalPaginas <= 1) {
+    if (orcamentosFiltrados.length < ITENS_POR_PAGINA) {
         paginacao.innerHTML = '';
         return;
     }
@@ -295,4 +295,34 @@ function formatarData(data) {
         return `${partes[2]}/${partes[1]}/${partes[0]}`;
     }
     return data;
+}
+
+function ordenarOrcamentosPorDataContrato(orcamentos) {
+    orcamentos.sort((a, b) => {
+        const dataA = obterTimestampDataContrato(a);
+        const dataB = obterTimestampDataContrato(b);
+
+        if (dataA !== dataB) {
+            return dataA - dataB;
+        }
+
+        return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+}
+
+function obterTimestampDataContrato(orcamento) {
+    const dataContrato = orcamento.dataContrato || orcamento.datas?.dataContrato || orcamento.dataContato || orcamento.datas?.dataContato;
+
+    if (!dataContrato) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+
+    const [ano, mes, dia] = String(dataContrato).split('-').map(Number);
+    const dataValida = Number.isInteger(ano) && Number.isInteger(mes) && Number.isInteger(dia);
+
+    if (!dataValida) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+
+    return new Date(ano, mes - 1, dia).getTime();
 }

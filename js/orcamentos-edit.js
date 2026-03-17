@@ -669,14 +669,14 @@ window.abrirModalAlteracao = function(editarId = null) {
     if (editarId) {
         const alteracao = dadosOrcamento.financeiro.alteracoesValor[editarId];
         document.getElementById('alteracaoEditando').value = editarId;
-        document.getElementById('alteracaoData').value = alteracao.data;
+        document.getElementById('alteracaoData').value = (alteracao.data || '').slice(0, 10);
         document.getElementById('alteracaoTipo').value = alteracao.tipo;
         const valorAbsoluto = Math.abs(alteracao.valor);
         document.getElementById('alteracaoValor').value = formatarValorInputMoeda(valorAbsoluto);
         document.getElementById('alteracaoDescricao').value = alteracao.descricao;
     } else {
         document.getElementById('alteracaoEditando').value = '';
-        document.getElementById('alteracaoData').value = getNowDateTimeLocalValue();
+        document.getElementById('alteracaoData').value = getLocalDateValue();
         document.getElementById('alteracaoTipo').value = 'acrescimo';
         document.getElementById('alteracaoValor').value = '';
         document.getElementById('alteracaoDescricao').value = '';
@@ -773,12 +773,12 @@ window.abrirModalCusto = function(editarId = null) {
     if (editarId) {
         const custo = dadosOrcamento.financeiro.custos[editarId];
         document.getElementById('custoEditando').value = editarId;
-        document.getElementById('custoData').value = custo.data;
+        document.getElementById('custoData').value = (custo.data || '').slice(0, 10);
         document.getElementById('custoValor').value = formatarValorInputMoeda(custo.valor);
         document.getElementById('custoDescricao').value = custo.descricao;
     } else {
         document.getElementById('custoEditando').value = '';
-        document.getElementById('custoData').value = getNowDateTimeLocalValue();
+        document.getElementById('custoData').value = getLocalDateValue();
         document.getElementById('custoValor').value = '';
         document.getElementById('custoDescricao').value = '';
     }
@@ -867,12 +867,12 @@ window.abrirModalPagamento = function(editarId = null) {
     if (editarId) {
         const pagamento = dadosOrcamento.financeiro.pagamentos[editarId];
         document.getElementById('pagamentoEditando').value = editarId;
-        document.getElementById('pagamentoData').value = pagamento.data;
+        document.getElementById('pagamentoData').value = (pagamento.data || '').slice(0, 10);
         document.getElementById('pagamentoValor').value = formatarValorInputMoeda(pagamento.valor);
         document.getElementById('pagamentoDescricao').value = pagamento.descricao;
     } else {
         document.getElementById('pagamentoEditando').value = '';
-        document.getElementById('pagamentoData').value = getNowDateTimeLocalValue();
+        document.getElementById('pagamentoData').value = getLocalDateValue();
         document.getElementById('pagamentoValor').value = '';
         document.getElementById('pagamentoDescricao').value = '';
     }
