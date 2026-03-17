@@ -119,6 +119,37 @@ function getLocalDateValue() {
     return getNowLocalISO().slice(0, 10);
 }
 
+function normalizarDataSomenteData(dataValor) {
+    if (!dataValor) return '';
+
+    if (typeof dataValor === 'string') {
+        const matchISO = dataValor.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (matchISO) return matchISO[1];
+    }
+
+    const data = new Date(dataValor);
+    if (Number.isNaN(data.getTime())) return '';
+
+    const offset = data.getTimezoneOffset() * 60000;
+    return new Date(data.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function normalizarFinanceiroDatasSomenteData(financeiro = {}) {
+    const normalizarColecao = (colecao = {}) => Object.fromEntries(
+        Object.entries(colecao).map(([id, item]) => [
+            id,
+            {
+                ...item,
+                data: normalizarDataSomenteData(item?.data)
+            }
+        ])
+    );
+
+    financeiro.alteracoesValor = normalizarColecao(financeiro.alteracoesValor);
+    financeiro.custos = normalizarColecao(financeiro.custos);
+    financeiro.pagamentos = normalizarColecao(financeiro.pagamentos);
+}
+
 // Função de inicialização (chamada pelo SPA)
 export async function init(editId = null) {
     console.log('🚀 Inicializando orcamentos-edit...', editId);
@@ -413,6 +444,7 @@ async function carregarOrcamento(id) {
         dadosOrcamento.financeiro.alteracoesValor = dadosOrcamento.financeiro.alteracoesValor || {};
         dadosOrcamento.financeiro.custos = dadosOrcamento.financeiro.custos || {};
         dadosOrcamento.financeiro.pagamentos = dadosOrcamento.financeiro.pagamentos || {};
+        normalizarFinanceiroDatasSomenteData(dadosOrcamento.financeiro);
         dadosOrcamento.anexos = dadosOrcamento.anexos || {};
         dadosOrcamento.historicoAlteracoes = dadosOrcamento.historicoAlteracoes || {};
         
@@ -698,7 +730,7 @@ window.salvarAlteracao = function() {
     }
     
     const alteracao = {
-        data,
+        data: normalizarDataSomenteData(data),
         valor: tipo === 'desconto' ? -valor : valor,
         tipo,
         descricao,
@@ -748,7 +780,7 @@ function atualizarTabelaAlteracoes() {
         .sort((a, b) => b[1].data.localeCompare(a[1].data))
         .map(([id, alt]) => `
             <tr>
-                <td>${formatarDataHora(alt.data)}</td>
+                <td>${formatarData(alt.data)}</td>
                 <td>
                     <span class="badge ${alt.tipo === 'acrescimo' ? 'bg-success' : 'bg-danger'}">
                         ${alt.tipo === 'acrescimo' ? '+' : '-'}
@@ -798,7 +830,7 @@ window.salvarCusto = function() {
     }
     
     const custo = {
-        data,
+        data: normalizarDataSomenteData(data),
         valor,
         descricao,
         criadoPor: userData.nome,
@@ -847,7 +879,7 @@ function atualizarTabelaCustos() {
         .sort((a, b) => b[1].data.localeCompare(a[1].data))
         .map(([id, custo]) => `
             <tr>
-                <td>${formatarDataHora(custo.data)}</td>
+                <td>${formatarData(custo.data)}</td>
                 <td>${formatarMoeda(custo.valor)}</td>
                 <td>${custo.descricao}</td>
                 <td>
@@ -892,7 +924,7 @@ window.salvarPagamento = function() {
     }
     
     const pagamento = {
-        data,
+        data: normalizarDataSomenteData(data),
         valor,
         descricao,
         criadoPor: userData.nome,
@@ -941,7 +973,7 @@ function atualizarTabelaPagamentos() {
         .sort((a, b) => b[1].data.localeCompare(a[1].data))
         .map(([id, pag]) => `
             <tr>
-                <td>${formatarDataHora(pag.data)}</td>
+                <td>${formatarData(pag.data)}</td>
                 <td class="text-success fw-bold">${formatarMoeda(pag.valor)}</td>
                 <td>${pag.descricao}</td>
                 <td>
@@ -1146,6 +1178,13 @@ function formatarMoeda(valor) {
 }
 
 // ========== UTILITÁRIOS ==========
+function formatarData(dataISO) {
+    if (!dataISO) return '---';
+    const data = new Date(dataISO);
+    if (Number.isNaN(data.getTime())) return '---';
+    return data.toLocaleDateString('pt-BR');
+}
+
 function formatarDataHora(dataISO) {
     if (!dataISO) return '---';
     const data = new Date(dataISO);

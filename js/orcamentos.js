@@ -10,6 +10,9 @@ let paginaAtual = 1;
 const ITENS_POR_PAGINA = 10;
 let firebaseUnsubscribe = null;
 
+const STATUS_CONCLUIDO = 'concluido';
+const STATUS_CANCELADOS_CONGELADOS = new Set(['cancelado', 'geladeira']);
+
 // Status com cores e ícones
 const STATUS_CONFIG = {
     'fazer_visita': { icon: '🚪', label: 'Fazer Visita', color: '#6c757d' },
@@ -108,12 +111,16 @@ function configurarFiltros() {
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const saldoFilter = document.getElementById('saldoFilter');
+    const showConcluidos = document.getElementById('showConcluidos');
+    const showCanceladosCongelados = document.getElementById('showCanceladosCongelados');
 
-    if (!searchInput || !statusFilter || !saldoFilter) return;
+    if (!searchInput || !statusFilter || !saldoFilter || !showConcluidos || !showCanceladosCongelados) return;
 
     searchInput.oninput = aplicarFiltros;
     statusFilter.onchange = aplicarFiltros;
     saldoFilter.onchange = aplicarFiltros;
+    showConcluidos.onchange = aplicarFiltros;
+    showCanceladosCongelados.onchange = aplicarFiltros;
 
     aplicarFiltros();
 }
@@ -123,6 +130,8 @@ function aplicarFiltros() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
     const saldoFilter = document.getElementById('saldoFilter').value;
+    const exibirConcluidos = document.getElementById('showConcluidos').checked;
+    const exibirCanceladosCongelados = document.getElementById('showCanceladosCongelados').checked;
     
     orcamentosFiltrados = todosOrcamentos.filter(orc => {
         const clienteEmpresa = (orc.clienteEmpresa || orc.projeto?.clienteEmpresa || '').toLowerCase();
@@ -138,6 +147,10 @@ function aplicarFiltros() {
         // Filtro de status
         const matchesStatus = statusFilter === '' || status === statusFilter;
         
+        const statusOculto =
+            (!exibirConcluidos && status === STATUS_CONCLUIDO) ||
+            (!exibirCanceladosCongelados && STATUS_CANCELADOS_CONGELADOS.has(status));
+
         // Filtro de saldo
         let matchesSaldo = true;
         if (saldoFilter === 'pendente') {
@@ -146,7 +159,7 @@ function aplicarFiltros() {
             matchesSaldo = saldo <= 0;
         }
         
-        return matchesSearch && matchesStatus && matchesSaldo;
+        return matchesSearch && matchesStatus && matchesSaldo && !statusOculto;
     });
     
     ordenarOrcamentosPorDataContrato(orcamentosFiltrados);
@@ -161,6 +174,8 @@ window.limparFiltros = function() {
     document.getElementById('searchInput').value = '';
     document.getElementById('statusFilter').value = '';
     document.getElementById('saldoFilter').value = '';
+    document.getElementById('showConcluidos').checked = false;
+    document.getElementById('showCanceladosCongelados').checked = false;
     aplicarFiltros();
 };
 
@@ -303,10 +318,10 @@ function ordenarOrcamentosPorDataContrato(orcamentos) {
         const dataB = obterTimestampDataContrato(b);
 
         if (dataA !== dataB) {
-            return dataA - dataB;
+            return dataB - dataA;
         }
 
-        return String(a.id || '').localeCompare(String(b.id || ''));
+        return String(b.id || '').localeCompare(String(a.id || ''));
     });
 }
 
@@ -314,14 +329,14 @@ function obterTimestampDataContrato(orcamento) {
     const dataContrato = orcamento.dataContrato || orcamento.datas?.dataContrato || orcamento.dataContato || orcamento.datas?.dataContato;
 
     if (!dataContrato) {
-        return Number.MAX_SAFE_INTEGER;
+        return Number.MIN_SAFE_INTEGER;
     }
 
     const [ano, mes, dia] = String(dataContrato).split('-').map(Number);
     const dataValida = Number.isInteger(ano) && Number.isInteger(mes) && Number.isInteger(dia);
 
     if (!dataValida) {
-        return Number.MAX_SAFE_INTEGER;
+        return Number.MIN_SAFE_INTEGER;
     }
 
     return new Date(ano, mes - 1, dia).getTime();
