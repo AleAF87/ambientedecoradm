@@ -176,6 +176,20 @@ function setupMobileNavbarCollapse() {
 
     const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapseElement, { toggle: false });
 
+    const forceCloseMobileMenu = () => {
+        const isExpanded = toggler.getAttribute('aria-expanded') === 'true';
+        const isMobileTogglerVisible = window.getComputedStyle(toggler).display !== 'none';
+
+        if (isExpanded && isMobileTogglerVisible) {
+            collapseInstance.hide();
+            toggler.setAttribute('aria-expanded', 'false');
+        }
+    };
+
+    document.querySelectorAll('#mainNavbar a[href]').forEach((link) => {
+        link.addEventListener('click', forceCloseMobileMenu);
+    });
+
     document.addEventListener('click', (event) => {
         const isExpanded = collapseElement.classList.contains('show');
         if (!isExpanded) return;
@@ -185,7 +199,7 @@ function setupMobileNavbarCollapse() {
         const isMobileTogglerVisible = window.getComputedStyle(toggler).display !== 'none';
 
         if ((clickedNavLink && isMobileTogglerVisible) || !clickedInNavbar) {
-            collapseInstance.hide();
+            forceCloseMobileMenu();
         }
     });
 }

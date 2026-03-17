@@ -85,14 +85,14 @@ function render() {
   const listaContainer = document.getElementById('sociedadeLista');
 
   if (!itens.length) {
-    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
+    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
     if (listaContainer) listaContainer.innerHTML = '<div class="text-center text-muted py-4">Nenhum lançamento.</div>';
     return;
   }
 
   if (tabelaBody) {
     tabelaBody.innerHTML = itens.map(i => {
-      const { valorLiquido, saldo, totalPagamentos } = obterDadosFinanceiros(i);
+      const { valorLiquido, saldo } = obterDadosFinanceiros(i);
 
       return `
         <tr>
@@ -100,7 +100,6 @@ function render() {
           <td><span class="badge text-bg-secondary">${obterStatusLabel(i.status)}</span></td>
           <td>${formatarMoeda(valorLiquido)}</td>
           <td class="${saldo > 0 ? 'text-warning fw-semibold' : 'text-success fw-semibold'}">${formatarMoeda(saldo)}</td>
-          <td>${formatarMoeda(totalPagamentos)}</td>
           <td>${formatarDataBr(i.dataContato || i.datas?.dataContato)}</td>
           <td class="fw-semibold text-center ${divisaoConcluida(i) ? 'text-success' : 'text-danger'}">
             <i class="fas ${divisaoConcluida(i) ? 'fa-circle-check' : 'fa-circle-xmark'}" aria-label="${divisaoConcluida(i) ? 'Verificado' : 'Não verificado'}" title="${divisaoConcluida(i) ? 'Verificado' : 'Não verificado'}"></i>
