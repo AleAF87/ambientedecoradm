@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Base - Ambiente Decor Adm</title>
+    <link rel="icon" type="image/x-icon" href="img/logo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <style>
+        /*
+         * CSS INLINE DE PROPÓSITO:
+         * Esta página foi criada como base visual/funcional para outros modais.
+         * Se você copiar este arquivo para outro projeto, pode começar levando este bloco junto.
+         */
+        .modal-base-page {
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .modal-base-card {
+            border: 0;
+            border-radius: 1rem;
+            box-shadow: 0 1rem 2rem rgba(67, 44, 32, 0.08);
+            overflow: hidden;
+        }
+
+        .modal-base-card .card-header {
+            background: linear-gradient(135deg, #f7f1ea 0%, #efe4d6 100%);
+            border-bottom: 1px solid rgba(67, 44, 32, 0.08);
+        }
+
+        .modal-base-helper {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+
+        .modal-base-result {
+            min-height: 72px;
+            border: 1px dashed rgba(67, 44, 32, 0.2);
+            border-radius: 0.85rem;
+            background: #fffaf5;
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal-base-result.has-value {
+            border-style: solid;
+            background: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.08);
+        }
+
+        .modal-base-result-label {
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #8a7768;
+            margin-bottom: 0.35rem;
+        }
+
+        .modal-base-result-text {
+            margin: 0;
+            font-size: 1rem;
+            color: #432c20;
+            word-break: break-word;
+        }
+    </style>
+
+    <main class="container-fluid modal-base-page">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+                <div class="card modal-base-card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-window-restore me-2 text-marrom-escuro"></i>
+                            Modal Base
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="modal-base-helper mb-4">
+                            Base simples para páginas do sistema que precisam abrir um modal, capturar um valor
+                            e refletir esse valor na tela principal.
+                        </p>
+
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                            <!--
+                                BOTÃO PRINCIPAL:
+                                Em outros projetos, normalmente você troca apenas o texto do botão
+                                e o ID do modal que será aberto.
+                            -->
+                            <button
+                                type="button"
+                                class="btn btn-primary"
+                                id="btnAbrirModalBase"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalBaseExemplo">
+                                <i class="fas fa-plus me-1"></i>
+                                Abrir modal
+                            </button>
+                        </div>
+
+                        <!--
+                            ÁREA DE RESULTADO:
+                            O texto salvo no modal será exibido aqui logo abaixo do botão.
+                            Em outro projeto, você pode trocar esta área por uma tabela, card, badge etc.
+                        -->
+                        <div class="modal-base-result" id="resultadoModalBase">
+                            <div class="modal-base-result-label">Texto retornado pelo modal</div>
+                            <p class="modal-base-result-text mb-0" id="textoResultadoModalBase">
+                                Nenhum texto informado ainda.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!--
+        MODAL BASE:
+        Estrutura inspirada no padrão usado em orcamentos-edit.html.
+        Para reaproveitar:
+        1. mantenha um ID único no modal;
+        2. mantenha IDs claros para os campos;
+        3. na ação do botão OK, leia os campos e atualize a tela principal.
+    -->
+    <div class="modal fade" id="modalBaseExemplo" tabindex="-1" aria-labelledby="modalBaseExemploTitulo" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalBaseExemploTitulo">Exemplo de modal base</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formModalBase">
+                        <div class="mb-3">
+                            <label for="inputTextoModalBase" class="form-label">Digite um texto</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="inputTextoModalBase"
+                                placeholder="Ex: observação, nome, descrição..."
+                                autocomplete="off"
+                                required>
+                            <div class="form-text">
+                                Este campo representa o valor que o modal devolve para a tela principal.
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmarModalBase">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /*
+         * JS INLINE DE PROPÓSITO:
+         * Esta base foi feita para ser fácil de copiar.
+         *
+         * COMO ADAPTAR EM OUTRO PROJETO:
+         * - troque os IDs dos elementos conforme a nova tela;
+         * - dentro de salvarTextoDoModal(), substitua a regra que hoje apenas escreve o texto na tela;
+         * - se precisar carregar dados existentes, faça isso dentro de initModalBasePage().
+         *
+         * IMPORTANTE NO SPA DESTE PROJETO:
+         * O app-core precisa reinjetar este script quando a página é carregada dentro do app.html.
+         * Por isso o init fica exposto em window e também evita dupla inicialização.
+         */
+        (function () {
+            function initModalBasePage() {
+                const pageRoot = document.querySelector('.modal-base-page');
+                if (!pageRoot || pageRoot.dataset.modalBaseInitialized === 'true') {
+                    return;
+                }
+
+                pageRoot.dataset.modalBaseInitialized = 'true';
+
+                const form = document.getElementById('formModalBase');
+                const input = document.getElementById('inputTextoModalBase');
+                const buttonOk = document.getElementById('btnConfirmarModalBase');
+                const resultBox = document.getElementById('resultadoModalBase');
+                const resultText = document.getElementById('textoResultadoModalBase');
+                const modalElement = document.getElementById('modalBaseExemplo');
+
+                if (!form || !input || !buttonOk || !resultBox || !resultText || !modalElement) {
+                    return;
+                }
+
+                function salvarTextoDoModal() {
+                    const textoDigitado = input.value.trim();
+
+                    if (!textoDigitado) {
+                        input.focus();
+                        input.classList.add('is-invalid');
+                        return;
+                    }
+
+                    input.classList.remove('is-invalid');
+                    resultText.textContent = textoDigitado;
+                    resultBox.classList.add('has-value');
+
+                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modalInstance.hide();
+                    form.reset();
+                }
+
+                input.addEventListener('input', function () {
+                    if (input.value.trim()) {
+                        input.classList.remove('is-invalid');
+                    }
+                });
+
+                buttonOk.addEventListener('click', salvarTextoDoModal);
+
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    salvarTextoDoModal();
+                });
+
+                modalElement.addEventListener('shown.bs.modal', function () {
+                    input.focus();
+                });
+
+                modalElement.addEventListener('hidden.bs.modal', function () {
+                    form.reset();
+                    input.classList.remove('is-invalid');
+                });
+            }
+
+            window.initModalBasePage = initModalBasePage;
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initModalBasePage);
+            } else {
+                initModalBasePage();
+            }
+        })();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/auth-check.js"></script>
+</body>
+</html>

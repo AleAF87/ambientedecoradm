@@ -181,7 +181,8 @@ class AppCore {
             const html = await response.text();
             
             if (cleanPageUrl === 'base.html' || cleanPageUrl === 'perfil.html' || 
-                cleanPageUrl === 'orcamentos.html' || cleanPageUrl === 'orcamentos-edit.html' || cleanPageUrl === 'sociedade.html' || cleanPageUrl === 'sociedade-edit.html') {
+                cleanPageUrl === 'orcamentos.html' || cleanPageUrl === 'orcamentos-edit.html' || cleanPageUrl === 'sociedade.html' || cleanPageUrl === 'sociedade-edit.html' ||
+                cleanPageUrl === 'modal-base.html') {
                 await this.loadSpecialPage(html, pageUrl);
             } else {
                 const pageContent = this.extractContent(html, pageUrl);
@@ -229,6 +230,7 @@ class AppCore {
             }
         });
         
+        this.cleanupInlinePageAssets();
         contentDiv.innerHTML = tempDiv.innerHTML;
         
         // Carregar scripts específicos
@@ -246,7 +248,24 @@ class AppCore {
             await this.loadSociedadeScript();
         } else if (cleanPageUrl === 'sociedade-edit.html') {
             await this.loadSociedadeEditScript(pageUrl);
+        } else if (cleanPageUrl === 'modal-base.html') {
+            this.injectInlinePageScripts(doc, cleanPageUrl);
         }
+    }
+
+    cleanupInlinePageAssets() {
+        document.querySelectorAll('[data-spa-inline-script]').forEach(el => el.remove());
+    }
+
+    injectInlinePageScripts(doc, pageUrl) {
+        const inlineScripts = doc.querySelectorAll('script:not([src])');
+
+        inlineScripts.forEach(script => {
+            const injectedScript = document.createElement('script');
+            injectedScript.dataset.spaInlineScript = pageUrl;
+            injectedScript.textContent = script.textContent;
+            document.body.appendChild(injectedScript);
+        });
     }
     
     async loadBaseScript() {
