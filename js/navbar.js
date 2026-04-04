@@ -128,7 +128,8 @@ function highlightMenu() {
             (currentPage.includes('orcamentos') && href.includes('orcamentos')) ||
             (currentPage.includes('dashboard') && href.includes('dashboard')) ||
             (currentPage.includes('perfil') && href.includes('perfil')) ||
-            (currentPage.includes('sociedade') && href.includes('sociedade'))) {
+            (currentPage.includes('sociedade') && href.includes('sociedade')) ||
+            (currentPage.includes('teste-endereco') && href.includes('teste-endereco'))) {
             
             link.classList.add('active');
             link.style.pointerEvents = 'none';
@@ -306,7 +307,8 @@ window.updateNavbarActiveMenu = function(pageUrl) {
             (pageUrl.includes('orcamentos') && href.includes('orcamentos')) ||
             (pageUrl.includes('dashboard') && href.includes('dashboard')) ||
             (pageUrl.includes('perfil') && href.includes('perfil')) ||
-            (pageUrl.includes('sociedade') && href.includes('sociedade'))) {
+            (pageUrl.includes('sociedade') && href.includes('sociedade')) ||
+            (pageUrl.includes('teste-endereco') && href.includes('teste-endereco'))) {
             
             link.classList.add('active');
             link.style.pointerEvents = 'none';

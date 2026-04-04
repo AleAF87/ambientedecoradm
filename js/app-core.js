@@ -182,7 +182,7 @@ class AppCore {
             
             if (cleanPageUrl === 'base.html' || cleanPageUrl === 'perfil.html' || 
                 cleanPageUrl === 'orcamentos.html' || cleanPageUrl === 'orcamentos-edit.html' || cleanPageUrl === 'sociedade.html' || cleanPageUrl === 'sociedade-edit.html' ||
-                cleanPageUrl === 'modal-base.html') {
+                cleanPageUrl === 'teste-endereco.html' || cleanPageUrl === 'modal-base.html') {
                 await this.loadSpecialPage(html, pageUrl);
             } else {
                 const pageContent = this.extractContent(html, pageUrl);
@@ -248,6 +248,8 @@ class AppCore {
             await this.loadSociedadeScript();
         } else if (cleanPageUrl === 'sociedade-edit.html') {
             await this.loadSociedadeEditScript(pageUrl);
+        } else if (cleanPageUrl === 'teste-endereco.html') {
+            await this.loadTesteEnderecoScript();
         } else if (cleanPageUrl === 'modal-base.html') {
             this.injectInlinePageScripts(doc, cleanPageUrl);
         }
@@ -343,6 +345,20 @@ class AppCore {
             if (mod?.initSociedadeEdit) await mod.initSociedadeEdit(id);
         } catch (error) {
             console.error('❌ Erro ao carregar sociedade-edit:', error);
+        }
+    }
+
+    async loadTesteEnderecoScript() {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const mod = await import('./teste-endereco.js');
+            if (mod?.initTesteEnderecoSPA) {
+                await mod.initTesteEnderecoSPA();
+            } else if (mod?.initTesteEndereco) {
+                await mod.initTesteEndereco();
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar teste-endereco:', error);
         }
     }
     

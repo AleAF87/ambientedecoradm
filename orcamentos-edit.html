@@ -49,10 +49,20 @@
                                             <h6 class="text-muted"><i class="fas fa-map-marker-alt me-2"></i>Endereço</h6>
                                         </div>
                                         <div class="col-md-4 mb-3">
+                                            <label class="form-label">CEP</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="cep" placeholder="00000-000" maxlength="9" inputmode="numeric">
+                                                <button type="button" class="btn btn-primary" id="buscarCepBtn">
+                                                    <i class="fas fa-search me-1"></i>Buscar CEP
+                                                </button>
+                                            </div>
+                                            <div id="cepStatus" class="form-text"></div>
+                                        </div>
+                                        <div class="col-md-5 mb-3">
                                             <label class="form-label">Logradouro</label>
                                             <input type="text" class="form-control" id="logradouro">
                                         </div>
-                                        <div class="col-md-2 mb-3">
+                                        <div class="col-md-3 mb-3">
                                             <label class="form-label">Número</label>
                                             <input type="text" class="form-control" id="numero">
                                         </div>
@@ -66,19 +76,11 @@
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Município</label>
-                                            <select class="form-select" id="municipio">
-                                                <option value="">Selecione...</option>
-                                            </select>
+                                            <input type="text" class="form-control" id="municipio" placeholder="Município">
                                         </div>
                                         <div class="col-md-2 mb-3">
                                             <label class="form-label">Estado (UF)</label>
-                                            <select class="form-select" id="estado">
-                                                <option value="">Selecione...</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
-                                            <label class="form-label">CEP</label>
-                                            <input type="text" class="form-control" id="cep" placeholder="00000-000">
+                                            <input type="text" class="form-control text-uppercase" id="estado" maxlength="2" placeholder="UF">
                                         </div>
                                     </div>
 
@@ -497,51 +499,6 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="uploadAnexo()">Adicionar à lista</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Adicionar Estado -->
-    <div class="modal fade" id="modalAdicionarEstado" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Adicionar Novo Estado</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">UF (2 letras)</label>
-                        <input type="text" class="form-control" id="novaUF" placeholder="Ex: SP" maxlength="2" style="text-transform: uppercase;">
-                        <small class="text-muted">Digite apenas a sigla do estado (2 caracteres)</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="adicionarEstado()">Adicionar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Adicionar Município -->
-    <div class="modal fade" id="modalAdicionarMunicipio" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Adicionar Novo Município</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nome do Município</label>
-                        <input type="text" class="form-control" id="novoMunicipio" placeholder="Ex: São Paulo">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="adicionarMunicipio()">Adicionar</button>
                 </div>
             </div>
         </div>

@@ -1,7 +1,6 @@
 // js/orcamentos-edit.js - Criação/Edição de Orçamentos
-import { database, auth } from './firebase-config.js';
-import { ref, set, update, get, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { database } from './firebase-config.js';
+import { ref, set, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { uploadImagemCloudinary, deletarImagemCloudinary } from './cloudinary-config.js';
 import { checkAuth } from './auth-check.js';
 
@@ -104,6 +103,71 @@ function converterMoedaParaNumero(valor) {
     return parseFloat(valorLimpo) || 0;
 }
 
+function onlyDigits(value) {
+    return String(value ?? '').replace(/\D/g, '');
+}
+
+function formatCEP(value) {
+    const digits = onlyDigits(value).slice(0, 8);
+    if (digits.length <= 5) return digits;
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+function definirStatusCep(message = '', type = 'muted') {
+    const status = document.getElementById('cepStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.className = `form-text text-${type}`;
+}
+
+async function buscarCep() {
+    const cepInput = document.getElementById('cep');
+    const button = document.getElementById('buscarCepBtn');
+    const cep = onlyDigits(cepInput?.value || '');
+
+    if (cep.length !== 8) {
+        definirStatusCep('Informe um CEP válido com 8 números.', 'danger');
+        cepInput?.focus();
+        return;
+    }
+
+    const originalHtml = button?.innerHTML;
+
+    try {
+        definirStatusCep('Buscando endereço...', 'muted');
+
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Buscando';
+        }
+
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+
+        if (data.erro) {
+            definirStatusCep('CEP não encontrado. Você pode preencher o endereço manualmente.', 'danger');
+            document.getElementById('logradouro')?.focus();
+            return;
+        }
+
+        document.getElementById('logradouro').value = data.logradouro || '';
+        document.getElementById('bairro').value = data.bairro || '';
+        document.getElementById('municipio').value = data.localidade || '';
+        document.getElementById('estado').value = String(data.uf || '').toUpperCase();
+        definirStatusCep('Endereço localizado. Confira os dados e informe o número.', 'success');
+        document.getElementById('numero')?.focus();
+    } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+        definirStatusCep('Não foi possível consultar o CEP agora. Você pode preencher manualmente.', 'danger');
+        document.getElementById('logradouro')?.focus();
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+        }
+    }
+}
+
 
 function getNowLocalISO() {
     const agora = new Date();
@@ -170,10 +234,6 @@ export async function init(editId = null) {
     } else {
         document.getElementById('formTitulo').textContent = 'Novo Orçamento';
         document.getElementById('dataContato').value = getLocalDateValue();
-    
-        // Carregar estados e municípios para novo orçamento
-        await carregarEstados();
-        await carregarMunicipios();
     }
     
     // Configurar eventos
@@ -216,174 +276,28 @@ export async function init(editId = null) {
         this.value = this.value.replace(/\D/g, '');
     };
     
-    // Configurar máscara CEP
-    document.getElementById('cep').oninput = function() {
-        let cep = this.value.replace(/\D/g, '');
-        if (cep.length > 5) {
-            cep = cep.substring(0, 5) + '-' + cep.substring(5, 8);
-        }
-        this.value = cep;
-    };
-    
-    // Event listener para selects
-    document.addEventListener('change', function(e) {
-        if (e.target.id === 'estado' && e.target.value === 'adicionar') {
-            e.target.value = ''; // Limpar seleção
-            const modal = new bootstrap.Modal(document.getElementById('modalAdicionarEstado'));
-            modal.show();
-        } else if (e.target.id === 'municipio' && e.target.value === 'adicionar') {
-            e.target.value = ''; // Limpar seleção
-            const modal = new bootstrap.Modal(document.getElementById('modalAdicionarMunicipio'));
-            modal.show();
-        }
+    document.getElementById('cep').addEventListener('input', function() {
+        this.value = formatCEP(this.value);
+        definirStatusCep('', 'muted');
+    });
+
+    document.getElementById('cep').addEventListener('keydown', async function(event) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        await buscarCep();
+    });
+
+    document.getElementById('buscarCepBtn')?.addEventListener('click', async function() {
+        await buscarCep();
+    });
+
+    document.getElementById('estado')?.addEventListener('input', function() {
+        this.value = String(this.value || '').toUpperCase().slice(0, 2);
     });
     
     configurarRegrasStatus();
     atualizarResumoFinanceiro();
 }
-
-// Carregar estados do Firebase
-async function carregarEstados() {
-    try {
-        const estadosRef = ref(database, 'estadoUF');
-        const snapshot = await get(estadosRef);
-        const selectEstado = document.getElementById('estado');
-        
-        if (selectEstado) {
-            selectEstado.innerHTML = '<option value="">Selecione...</option>';
-            
-            if (snapshot.exists()) {
-                const estados = snapshot.val();
-                // Ordenar as UFs alfabeticamente
-                const ufsOrdenadas = Object.keys(estados).sort();
-                
-                ufsOrdenadas.forEach(uf => {
-                    selectEstado.innerHTML += `<option value="${uf}">${uf}</option>`;
-                });
-            }
-            
-            // Adicionar opção "Adicionar" no final
-            selectEstado.innerHTML += '<option value="adicionar">+ Adicionar Estado</option>';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar estados:', error);
-        // Garantir que a opção "Adicionar" apareça mesmo com erro
-        const selectEstado = document.getElementById('estado');
-        if (selectEstado) {
-            selectEstado.innerHTML = '<option value="">Selecione...</option>';
-            selectEstado.innerHTML += '<option value="adicionar">+ Adicionar Estado</option>';
-        }
-    }
-}
-
-// Carregar municípios do Firebase
-async function carregarMunicipios() {
-    try {
-        const municipiosRef = ref(database, 'municipio');
-        const snapshot = await get(municipiosRef);
-        const selectMunicipio = document.getElementById('municipio');
-        
-        if (selectMunicipio) {
-            selectMunicipio.innerHTML = '<option value="">Selecione...</option>';
-            
-            if (snapshot.exists()) {
-                const municipios = snapshot.val();
-                const listaMunicipios = [];
-                
-                // Extrair todos os municípios do Firebase
-                Object.values(municipios).forEach(item => {
-                    if (typeof item === 'object') {
-                        Object.values(item).forEach(valor => {
-                            if (typeof valor === 'string') {
-                                listaMunicipios.push(valor);
-                            }
-                        });
-                    } else if (typeof item === 'string') {
-                        listaMunicipios.push(item);
-                    }
-                });
-                
-                // Ordenar municípios alfabeticamente
-                listaMunicipios.sort();
-                
-                // Adicionar ao select
-                listaMunicipios.forEach(municipio => {
-                    selectMunicipio.innerHTML += `<option value="${municipio}">${municipio}</option>`;
-                });
-            }
-            
-            // Adicionar opção "Adicionar" no final
-            selectMunicipio.innerHTML += '<option value="adicionar">+ Adicionar Município</option>';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar municípios:', error);
-        const selectMunicipio = document.getElementById('municipio');
-        if (selectMunicipio) {
-            selectMunicipio.innerHTML = '<option value="">Selecione...</option>';
-            selectMunicipio.innerHTML += '<option value="adicionar">+ Adicionar Município</option>';
-        }
-    }
-}
-
-// Adicionar novo estado
-window.adicionarEstado = async function() {
-    const novaUF = document.getElementById('novaUF').value.trim().toUpperCase();
-    
-    if (!novaUF) {
-        alert('Digite a UF do estado');
-        return;
-    }
-    
-    if (novaUF.length !== 2) {
-        alert('A UF deve ter exatamente 2 caracteres');
-        return;
-    }
-    
-    try {
-        const estadoRef = ref(database, `estadoUF/${novaUF}`);
-        await set(estadoRef, novaUF);
-        
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarEstado'));
-        if (modal) modal.hide();
-        
-        document.getElementById('novaUF').value = '';
-        
-        await carregarEstados();
-        document.getElementById('estado').value = novaUF;
-        
-    } catch (error) {
-        console.error('Erro ao adicionar estado:', error);
-        alert('Erro ao adicionar estado');
-    }
-};
-
-// Adicionar novo município
-window.adicionarMunicipio = async function() {
-    const novoMunicipio = document.getElementById('novoMunicipio').value.trim();
-    
-    if (!novoMunicipio) {
-        alert('Digite o nome do município');
-        return;
-    }
-    
-    try {
-        const municipiosRef = ref(database, 'municipio');
-        const novoId = push(municipiosRef).key;
-        await set(ref(database, `municipio/${novoId}`), novoMunicipio);
-        
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAdicionarMunicipio'));
-        if (modal) modal.hide();
-        
-        document.getElementById('novoMunicipio').value = '';
-        
-        await carregarMunicipios();
-        document.getElementById('municipio').value = novoMunicipio;
-        
-    } catch (error) {
-        console.error('Erro ao adicionar município:', error);
-        alert('Erro ao adicionar município');
-    }
-};
 
 // Máscara para CPF/CNPJ
 function aplicarMascaraCPFCNPJ(valor) {
@@ -457,19 +371,9 @@ async function carregarOrcamento(id) {
         document.getElementById('numero').value = dadosOrcamento.endereco?.numero || '';
         document.getElementById('complemento').value = dadosOrcamento.endereco?.complemento || '';
         document.getElementById('bairro').value = dadosOrcamento.endereco?.bairro || '';
-        document.getElementById('cep').value = dadosOrcamento.endereco?.cep || '';
-        
-        // Carregar estados e municípios antes de selecionar os valores
-        await carregarEstados();
-        await carregarMunicipios();
-        
-        if (dadosOrcamento.endereco?.estado) {
-            document.getElementById('estado').value = dadosOrcamento.endereco.estado;
-        }
-        
-        if (dadosOrcamento.endereco?.municipio) {
-            document.getElementById('municipio').value = dadosOrcamento.endereco.municipio;
-        }
+        document.getElementById('cep').value = formatCEP(dadosOrcamento.endereco?.cep || '');
+        document.getElementById('estado').value = String(dadosOrcamento.endereco?.estado || '').toUpperCase();
+        document.getElementById('municipio').value = dadosOrcamento.endereco?.municipio || '';
         
         document.getElementById('descricao').value = dadosOrcamento.projeto?.descricao || '';
         
@@ -569,13 +473,13 @@ async function salvarOrcamento(e) {
                 descricao
             },
             endereco: {
-                logradouro: document.getElementById('logradouro').value,
-                numero: document.getElementById('numero').value,
-                complemento: document.getElementById('complemento').value,
-                bairro: document.getElementById('bairro').value,
-                municipio: document.getElementById('municipio').value,
-                estado: document.getElementById('estado').value,
-                cep: document.getElementById('cep').value
+                logradouro: document.getElementById('logradouro').value.trim(),
+                numero: document.getElementById('numero').value.trim(),
+                complemento: document.getElementById('complemento').value.trim(),
+                bairro: document.getElementById('bairro').value.trim(),
+                municipio: document.getElementById('municipio').value.trim(),
+                estado: document.getElementById('estado').value.trim().toUpperCase(),
+                cep: formatCEP(document.getElementById('cep').value)
             },
             datas: {
                 dataContato,
@@ -1213,8 +1117,6 @@ window.abrirModalAnexo = abrirModalAnexo;
 window.uploadAnexo = uploadAnexo;
 window.excluirAnexo = excluirAnexo;
 window.atualizarResumoFinanceiro = atualizarResumoFinanceiro;
-window.adicionarEstado = adicionarEstado;
-window.adicionarMunicipio = adicionarMunicipio;
 window.cancelarEdicao = cancelarEdicao;
 window.mascaraMoeda = mascaraMoeda;
 
