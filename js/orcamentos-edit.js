@@ -1326,24 +1326,6 @@ function formatarDataHora(dataISO) {
 }
 
 // Exportar funções para o window
-window.abrirModalAlteracao = abrirModalAlteracao;
-window.salvarAlteracao = salvarAlteracao;
-window.excluirAlteracao = excluirAlteracao;
-window.abrirModalCusto = abrirModalCusto;
-window.salvarCusto = salvarCusto;
-window.excluirCusto = excluirCusto;
-window.abrirModalPagamento = abrirModalPagamento;
-window.salvarPagamento = salvarPagamento;
-window.excluirPagamento = excluirPagamento;
-window.abrirModalAnexo = abrirModalAnexo;
-window.uploadAnexo = uploadAnexo;
-window.excluirAnexo = excluirAnexo;
-window.atualizarResumoFinanceiro = atualizarResumoFinanceiro;
-window.adicionarEstado = adicionarEstado;
-window.adicionarMunicipio = adicionarMunicipio;
-window.cancelarEdicao = cancelarEdicao;
-window.mascaraMoeda = mascaraMoeda;
-window.buscarEnderecoPorCep = buscarEnderecoPorCep;
 
 // Inicialização automática quando a página é aberta fora do SPA
 if (!window.location.pathname.includes('app.html')) {
