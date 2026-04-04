@@ -8,6 +8,12 @@ let valorLiquidoAtual = 0;
 let saldoPendenteAtual = 0;
 let anexosSociedade = [];
 
+function getNowLocalISO() {
+  const agora = new Date();
+  const offset = agora.getTimezoneOffset() * 60000;
+  return new Date(agora.getTime() - offset).toISOString().slice(0, 19);
+}
+
 export async function initSociedadeEdit(idFromSPA = null) {
   await checkAuth(3);
   itemId = idFromSPA || new URLSearchParams(window.location.search).get('id');
@@ -148,7 +154,7 @@ async function onClickAnexoSociedade(event) {
 
     await update(ref(database, `sociedade/${itemId}`), {
       anexoSociedade: sanitizarAnexos(anexosSociedade),
-      alteradoEm: new Date().toISOString()
+      alteradoEm: getNowLocalISO()
     });
 
     renderizarListaAnexosSociedade();
@@ -185,7 +191,7 @@ async function salvar(e) {
     valorDavid,
     valorAlexandre,
     anexoSociedade: anexosAtualizados,
-    alteradoEm: new Date().toISOString()
+    alteradoEm: getNowLocalISO()
   });
 
   anexosSociedade = anexosAtualizados;

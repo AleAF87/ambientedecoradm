@@ -182,8 +182,8 @@ function formatarDataBr(data) {
     return `${dia}/${mes}/${ano}`;
   }
 
-  const dt = new Date(data);
-  if (!Number.isNaN(dt.getTime())) {
+  const dt = criarDataLocalSegura(data);
+  if (dt && !Number.isNaN(dt.getTime())) {
     return dt.toLocaleDateString('pt-BR');
   }
 
@@ -194,8 +194,40 @@ function obterTimestampContato(item) {
   const data = item?.dataContato || item?.datas?.dataContato;
   if (!data) return -Infinity;
 
-  const timestamp = Date.parse(data);
-  return Number.isNaN(timestamp) ? -Infinity : timestamp;
+  const dataObj = criarDataLocalSegura(data);
+  return !dataObj || Number.isNaN(dataObj.getTime()) ? -Infinity : dataObj.getTime();
+}
+
+function criarDataLocalSegura(data) {
+  if (!data) return null;
+
+  if (data instanceof Date) {
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  if (typeof data === 'string') {
+    const somenteData = data.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (somenteData) {
+      const [, ano, mes, dia] = somenteData;
+      return new Date(Number(ano), Number(mes) - 1, Number(dia));
+    }
+
+    const dataHoraSemTimezone = data.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (dataHoraSemTimezone) {
+      const [, ano, mes, dia, hora, minuto, segundo = '00'] = dataHoraSemTimezone;
+      return new Date(
+        Number(ano),
+        Number(mes) - 1,
+        Number(dia),
+        Number(hora),
+        Number(minuto),
+        Number(segundo)
+      );
+    }
+  }
+
+  const dataObj = new Date(data);
+  return Number.isNaN(dataObj.getTime()) ? null : dataObj;
 }
 
 function divisaoConcluida(item) {

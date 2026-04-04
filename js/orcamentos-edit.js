@@ -134,6 +134,38 @@ function normalizarDataSomenteData(dataValor) {
     return new Date(data.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function criarDataLocalSegura(dataValor) {
+    if (!dataValor) return null;
+
+    if (dataValor instanceof Date) {
+        return Number.isNaN(dataValor.getTime()) ? null : dataValor;
+    }
+
+    if (typeof dataValor === 'string') {
+        const somenteData = dataValor.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (somenteData) {
+            const [, ano, mes, dia] = somenteData;
+            return new Date(Number(ano), Number(mes) - 1, Number(dia));
+        }
+
+        const dataHoraSemTimezone = dataValor.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (dataHoraSemTimezone) {
+            const [, ano, mes, dia, hora, minuto, segundo = '00'] = dataHoraSemTimezone;
+            return new Date(
+                Number(ano),
+                Number(mes) - 1,
+                Number(dia),
+                Number(hora),
+                Number(minuto),
+                Number(segundo)
+            );
+        }
+    }
+
+    const data = new Date(dataValor);
+    return Number.isNaN(data.getTime()) ? null : data;
+}
+
 function normalizarFinanceiroDatasSomenteData(financeiro = {}) {
     const normalizarColecao = (colecao = {}) => Object.fromEntries(
         Object.entries(colecao).map(([id, item]) => [
@@ -1193,14 +1225,15 @@ function formatarData(dataISO) {
         }
     }
 
-    const data = new Date(dataISO);
-    if (Number.isNaN(data.getTime())) return '---';
+    const data = criarDataLocalSegura(dataISO);
+    if (!data || Number.isNaN(data.getTime())) return '---';
     return data.toLocaleDateString('pt-BR');
 }
 
 function formatarDataHora(dataISO) {
     if (!dataISO) return '---';
-    const data = new Date(dataISO);
+    const data = criarDataLocalSegura(dataISO);
+    if (!data || Number.isNaN(data.getTime())) return '---';
     return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -1222,6 +1255,7 @@ window.adicionarEstado = adicionarEstado;
 window.adicionarMunicipio = adicionarMunicipio;
 window.cancelarEdicao = cancelarEdicao;
 window.mascaraMoeda = mascaraMoeda;
+window.buscarEnderecoPorCep = buscarEnderecoPorCep;
 
 // Inicialização automática quando a página é aberta fora do SPA
 if (!window.location.pathname.includes('app.html')) {
