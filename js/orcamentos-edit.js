@@ -224,6 +224,11 @@ export async function init(editId = null) {
         }
         this.value = cep;
     };
+
+    const botaoBuscarCep = document.getElementById('buscarCepBtn');
+    if (botaoBuscarCep) {
+        botaoBuscarCep.addEventListener('click', buscarEnderecoPorCep);
+    }
     
     // Event listener para selects
     document.addEventListener('change', function(e) {
@@ -1229,5 +1234,185 @@ if (!window.location.pathname.includes('app.html')) {
         document.addEventListener('DOMContentLoaded', autoInit);
     } else {
         autoInit();
+    }
+}
+
+async function buscarEnderecoPorCep() {
+    const inputCep = document.getElementById('cep');
+    const botaoBuscarCep = document.getElementById('buscarCepBtn');
+
+    if (!inputCep || !botaoBuscarCep) return;
+
+    const cep = inputCep.value.replace(/\D/g, '');
+    if (cep.length !== 8) {
+        alert('Digite um CEP valido com 8 numeros.');
+        inputCep.focus();
+        return;
+    }
+
+    const textoOriginalBotao = botaoBuscarCep.innerHTML;
+    botaoBuscarCep.disabled = true;
+    botaoBuscarCep.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Buscando...';
+
+    try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const endereco = await response.json();
+        if (endereco.erro) {
+            alert('CEP nao encontrado.');
+            return;
+        }
+
+        document.getElementById('logradouro').value = endereco.logradouro || '';
+        document.getElementById('bairro').value = endereco.bairro || '';
+
+        const inputComplemento = document.getElementById('complemento');
+        if (inputComplemento && !inputComplemento.value.trim() && endereco.complemento) {
+            inputComplemento.value = endereco.complemento;
+        }
+
+        selecionarOuAdicionarOpcao(document.getElementById('estado'), endereco.uf);
+        selecionarOuAdicionarOpcao(document.getElementById('municipio'), endereco.localidade);
+    } catch (error) {
+        console.error('Erro ao buscar endereco pelo CEP:', error);
+        alert('Nao foi possivel buscar o endereco pelo CEP. Tente novamente.');
+    } finally {
+        botaoBuscarCep.disabled = false;
+        botaoBuscarCep.innerHTML = textoOriginalBotao;
+    }
+}
+
+async function buscarEnderecoPorCep() {
+    const inputCep = document.getElementById('cep');
+    const botaoBuscarCep = document.getElementById('buscarCepBtn');
+
+    if (!inputCep || !botaoBuscarCep) return;
+
+    const cep = inputCep.value.replace(/\D/g, '');
+    if (cep.length !== 8) {
+        alert('Digite um CEP valido com 8 numeros.');
+        inputCep.focus();
+        return;
+    }
+
+    const textoOriginalBotao = botaoBuscarCep.innerHTML;
+    botaoBuscarCep.disabled = true;
+    botaoBuscarCep.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Buscando...';
+
+    try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const endereco = await response.json();
+        if (endereco.erro) {
+            alert('CEP nao encontrado.');
+            return;
+        }
+
+        document.getElementById('logradouro').value = endereco.logradouro || '';
+        document.getElementById('bairro').value = endereco.bairro || '';
+
+        const inputComplemento = document.getElementById('complemento');
+        if (inputComplemento && !inputComplemento.value.trim() && endereco.complemento) {
+            inputComplemento.value = endereco.complemento;
+        }
+
+        selecionarOuAdicionarOpcao(document.getElementById('estado'), endereco.uf);
+        selecionarOuAdicionarOpcao(document.getElementById('municipio'), endereco.localidade);
+    } catch (error) {
+        console.error('Erro ao buscar endereco pelo CEP:', error);
+        alert('Nao foi possivel buscar o endereco pelo CEP. Tente novamente.');
+    } finally {
+        botaoBuscarCep.disabled = false;
+        botaoBuscarCep.innerHTML = textoOriginalBotao;
+    }
+}
+
+function normalizarTextoComparacao(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function selecionarOuAdicionarOpcao(select, valor, texto = valor) {
+    if (!select || !valor) return;
+
+    const valorNormalizado = normalizarTextoComparacao(valor);
+    const opcaoExistente = Array.from(select.options).find(option =>
+        normalizarTextoComparacao(option.value) === valorNormalizado ||
+        normalizarTextoComparacao(option.textContent) === valorNormalizado
+    );
+
+    if (opcaoExistente) {
+        select.value = opcaoExistente.value;
+        return;
+    }
+
+    const novaOpcao = document.createElement('option');
+    novaOpcao.value = valor;
+    novaOpcao.textContent = texto;
+    const opcaoAdicionar = select.querySelector('option[value="adicionar"]');
+
+    if (opcaoAdicionar) {
+        select.insertBefore(novaOpcao, opcaoAdicionar);
+    } else {
+        select.appendChild(novaOpcao);
+    }
+
+    select.value = valor;
+}
+
+async function buscarEnderecoPorCep() {
+    const inputCep = document.getElementById('cep');
+    const botaoBuscarCep = document.getElementById('buscarCepBtn');
+
+    if (!inputCep || !botaoBuscarCep) return;
+
+    const cep = inputCep.value.replace(/\D/g, '');
+    if (cep.length !== 8) {
+        alert('Digite um CEP vÃ¡lido com 8 nÃºmeros.');
+        inputCep.focus();
+        return;
+    }
+
+    const textoOriginalBotao = botaoBuscarCep.innerHTML;
+    botaoBuscarCep.disabled = true;
+    botaoBuscarCep.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Buscando...';
+
+    try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const endereco = await response.json();
+        if (endereco.erro) {
+            alert('CEP nÃ£o encontrado.');
+            return;
+        }
+
+        document.getElementById('logradouro').value = endereco.logradouro || '';
+        document.getElementById('bairro').value = endereco.bairro || '';
+
+        const inputComplemento = document.getElementById('complemento');
+        if (inputComplemento && !inputComplemento.value.trim() && endereco.complemento) {
+            inputComplemento.value = endereco.complemento;
+        }
+
+        selecionarOuAdicionarOpcao(document.getElementById('estado'), endereco.uf);
+        selecionarOuAdicionarOpcao(document.getElementById('municipio'), endereco.localidade);
+    } catch (error) {
+        console.error('Erro ao buscar endereÃ§o pelo CEP:', error);
+        alert('NÃ£o foi possÃ­vel buscar o endereÃ§o pelo CEP. Tente novamente.');
+    } finally {
+        botaoBuscarCep.disabled = false;
+        botaoBuscarCep.innerHTML = textoOriginalBotao;
     }
 }
