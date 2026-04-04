@@ -315,7 +315,7 @@ class AppCore {
             const urlParams = new URLSearchParams(queryString);
             const orcamentoId = urlParams.get('id');
             
-            const orcamentosEditModule = await import('./orcamentos-edit.js?t=' + Date.now());
+            const orcamentosEditModule = await import('./orcamentos-edit.js');
             if (orcamentosEditModule && typeof orcamentosEditModule.init === 'function') {
                 await orcamentosEditModule.init(orcamentoId);
             }

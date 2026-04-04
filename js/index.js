@@ -96,12 +96,6 @@ function formatarDataISO(data) {
     return `${ano}-${mes}-${dia}`;
 }
 
-function getNowLocalISO() {
-    const agora = new Date();
-    const offset = agora.getTimezoneOffset() * 60000;
-    return new Date(agora.getTime() - offset).toISOString().slice(0, 19);
-}
-
 function dataStringParaObjeto(dataStr) {
     if (!dataStr) return null;
     const partes = dataStr.split('/');
@@ -473,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Criar usuário no Firebase Auth
                 const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
                 
-                const timestamp = getNowLocalISO();
+                const timestamp = new Date().toISOString();
                 
                 // Criar nó em /usuarios/{cpf}
                 await set(ref(database, `usuarios/${cpf}`), {
