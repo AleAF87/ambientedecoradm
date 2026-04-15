@@ -1,4 +1,4 @@
-import { checkAuth } from './auth-check.js';
+import { checkAuth, loadNavbar } from './auth-check.js';
 import { database } from './firebase-config.js';
 import { ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
@@ -493,5 +493,12 @@ window.abrirOrcamento = function (id) {
 };
 
 if (!window.location.pathname.includes('app.html')) {
-    initDashboard();
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await loadNavbar();
+        } catch (error) {
+            console.warn('Nao foi possivel carregar a navbar do dashboard:', error);
+        }
+        await initDashboard();
+    });
 }

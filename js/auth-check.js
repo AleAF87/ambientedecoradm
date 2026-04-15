@@ -1,121 +1,14 @@
-// js/auth-check.js - Verificação de Autenticação com CPF
-import { auth } from './firebase-config.js';
+import { auth, database } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { database } from './firebase-config.js';
 import { ref, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-// Função utilitária para formatar CPF (garantir 11 dígitos)
+let navbarModulePromise = null;
+
 function formatarCPF(cpf) {
     if (!cpf) return null;
-    let cpfLimpo = cpf.toString().replace(/\D/g, '');
-    return cpfLimpo.padStart(11, '0');
+    return String(cpf).replace(/\D/g, '').padStart(11, '0');
 }
 
-// Verificar autenticação e nível de acesso
-export function checkAuth(requiredLevel = 3) {
-    return new Promise((resolve, reject) => {
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                console.log('❌ Usuário não autenticado');
-                window.location.href = 'index.html';
-                return;
-            }
-
-            try {
-                // 1. PEGAR SOMENTE O CPF DO SESSION STORAGE
-                let userCPF = sessionStorage.getItem('userCPF');
-                
-                if (!userCPF) {
-                    // Se não achou no session, tenta no localStorage como fallback
-                    userCPF = localStorage.getItem('userCPF');
-                }
-                
-                if (!userCPF) {
-                    console.error('❌ CPF não encontrado no storage');
-                    throw new Error('CPF não encontrado');
-                }
-
-                // 2. FORMATAR CPF (garantir 11 dígitos)
-                userCPF = formatarCPF(userCPF);
-                
-                console.log('🔍 Verificando acesso para CPF:', userCPF);
-
-                // 3. BUSCAR DADOS DO USUÁRIO EM /usuarios/{cpf}
-                const usuarioRef = ref(database, `usuarios/${userCPF}`);
-                const snapshot = await get(usuarioRef);
-
-                if (!snapshot.exists()) {
-                    console.error('❌ Usuário não encontrado em /usuarios/');
-                    throw new Error('Dados do usuário não encontrados');
-                }
-
-                const userData = snapshot.val();
-                console.log('✅ Dados encontrados:', {
-                    nome: userData.nome,
-                    nivel: userData.nivel,
-                    email: userData.email
-                });
-                
-                const userLevel = userData.nivel || 3;
-                
-                // 4. SALVAR O NÍVEL NO SESSION STORAGE
-                sessionStorage.setItem('userNivel', userLevel);
-                sessionStorage.setItem('currentUserLevel', userLevel);
-                
-                // 5. VERIFICAR SE USUÁRIO ESTÁ PENDENTE
-                if (userLevel === 0) {
-                    alert('❌ Seu cadastro ainda está pendente de aprovação.\n\nAguarde liberação do administrador.');
-                    await auth.signOut();
-                    clearUserData();
-                    window.location.href = 'index.html';
-                    reject(new Error('Usuário pendente de aprovação'));
-                    return;
-                }
-                
-                // 6. VERIFICAR NÍVEL DE ACESSO (se necessário)
-                if (requiredLevel < 3 && userLevel > requiredLevel) {
-                    console.log(`🚫 Nível insuficiente: usuário ${userLevel}, necessário ${requiredLevel}`);
-                    
-                    alert(`🚫 Acesso Negado!\n\nSeu nível de acesso (${userLevel}) não permite esta página.\nNível necessário: ${requiredLevel}`);
-                    
-                    // Redirecionar para dashboard
-                    if (window.location.pathname.includes('app.html')) {
-                        if (window.app && window.app.loadPage) {
-                            window.app.loadPage('dashboard.html');
-                        } else {
-                            window.location.href = 'dashboard.html';
-                        }
-                    } else {
-                        window.location.href = 'dashboard.html';
-                    }
-                    
-                    reject(new Error(`Nível insuficiente: ${userLevel} < ${requiredLevel}`));
-                    return;
-                }
-                
-                // 7. TUDO OK! Resolver com os dados
-                resolve({ 
-                    user, 
-                    userData, 
-                    cpf: userCPF
-                });
-                
-            } catch (error) {
-                console.error('💥 Erro ao verificar acesso:', error.message);
-                
-                if (!error.message.includes('Nível insuficiente') && 
-                    !error.message.includes('pendente')) {
-                    alert('Erro ao verificar permissões. Faça login novamente.');
-                    clearUserData();
-                    window.location.href = 'index.html';
-                }
-                reject(error);
-            }
-        });
-    });
-}
-
-// Limpar dados do usuário
 function clearUserData() {
     sessionStorage.removeItem('userCPF');
     sessionStorage.removeItem('userName');
@@ -125,116 +18,135 @@ function clearUserData() {
     localStorage.removeItem('userName');
 }
 
-// Carregar navbar
+function redirectToAppWithRefresh() {
+    window.location.replace('app.html');
+}
+
+async function carregarDadosUsuario(userCPF) {
+    const usuarioRef = ref(database, `usuarios/${userCPF}`);
+    const snapshot = await get(usuarioRef);
+
+    if (!snapshot.exists()) {
+        throw new Error('Dados do usuario nao encontrados');
+    }
+
+    const userData = snapshot.val() || {};
+    const loginRef = ref(database, `login/${userCPF}`);
+    const loginSnapshot = await get(loginRef);
+    const loginData = loginSnapshot.exists() ? (loginSnapshot.val() || {}) : {};
+    const loginStatus = String(loginData.status || userData.status || 'ativo').trim().toLowerCase();
+
+    if (loginStatus !== 'ativo') {
+        throw new Error(`Cadastro com status ${loginStatus}`);
+    }
+
+    if (!userData.nome) {
+        userData.nome = loginData.nome || auth.currentUser?.email?.split('@')[0] || 'Usuario';
+    }
+
+    return {
+        userData,
+        userLevel: Number(userData.nivel || 3)
+    };
+}
+
+export function checkAuth(requiredLevel = 3) {
+    return new Promise((resolve, reject) => {
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                let userCPF = sessionStorage.getItem('userCPF') || localStorage.getItem('userCPF');
+                userCPF = formatarCPF(userCPF);
+
+                if (!userCPF) {
+                    throw new Error('CPF nao encontrado');
+                }
+
+                const { userData, userLevel } = await carregarDadosUsuario(userCPF);
+
+                sessionStorage.setItem('currentUserLevel', userLevel);
+                sessionStorage.setItem('userNivel', userLevel);
+
+                if (userLevel > requiredLevel) {
+                    alert('Acesso negado.\n\nCaso necessario, contate o administrador.');
+
+                    if (window.location.pathname.includes('app.html')) {
+                        redirectToAppWithRefresh();
+                    } else {
+                        window.location.href = 'app.html';
+                    }
+
+                    reject(new Error(`Nivel insuficiente: ${userLevel} > ${requiredLevel}`));
+                    return;
+                }
+
+                resolve({
+                    user,
+                    userData,
+                    cpf: userCPF
+                });
+            } catch (error) {
+                console.error('Erro ao verificar acesso:', error.message);
+
+                if (!error.message.includes('Nivel insuficiente')) {
+                    alert('Erro ao verificar permissoes: ' + error.message);
+                    clearUserData();
+                    window.location.href = 'index.html';
+                }
+
+                reject(error);
+            }
+        });
+    });
+}
+
+async function ensureNavbarModuleLoaded() {
+    if (window.location.pathname.includes('app.html')) return;
+    if (!navbarModulePromise) {
+        navbarModulePromise = import('./navbar.js');
+    }
+    await navbarModulePromise;
+}
+
 export async function loadNavbar() {
     const existingNavbar = document.getElementById('navbar');
     if (existingNavbar && existingNavbar.innerHTML.trim() !== '') {
-        console.log('✅ Navbar já carregada');
+        await ensureNavbarModuleLoaded();
         return true;
     }
-    
+
     let navbarElement = document.getElementById('navbar');
     if (!navbarElement) {
         navbarElement = document.createElement('div');
         navbarElement.id = 'navbar';
         document.body.insertBefore(navbarElement, document.body.firstChild);
     }
-    
+
     try {
         const response = await fetch('components/navbar.html');
-        
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
-        const html = await response.text();
-        
-        if (navbarElement.innerHTML.trim() === '') {
-            navbarElement.innerHTML = html;
-            console.log('✅ Navbar carregada no DOM');
-        }
-        
-        // Aguardar um pouco e depois esconder itens por nível
-        setTimeout(() => {
-            setTimeout(hideNavbarItemsByLevel, 200);
-        }, 100);
-        
+
+        navbarElement.innerHTML = await response.text();
+        await ensureNavbarModuleLoaded();
+        document.dispatchEvent(new CustomEvent('navbar:loaded'));
         return true;
-        
     } catch (error) {
-        console.error('❌ Erro ao carregar navbar:', error.message);
-        
+        console.error('Erro ao carregar navbar:', error.message);
+
         if (!navbarElement.innerHTML.trim()) {
             navbarElement.innerHTML = createFallbackNavbar();
         }
-        
+
         return false;
     }
 }
 
-// Esconder itens da navbar baseado no nível do usuário
-async function hideNavbarItemsByLevel() {
-    try {
-        let userLevel = sessionStorage.getItem('userNivel');
-        
-        if (!userLevel) {
-            let userCPF = sessionStorage.getItem('userCPF');
-            if (!userCPF) return;
-            
-            const usuarioRef = ref(database, `usuarios/${userCPF}`);
-            const snapshot = await get(usuarioRef);
-            
-            if (!snapshot.exists()) return;
-            
-            const userData = snapshot.val();
-            userLevel = userData.nivel || 3;
-            sessionStorage.setItem('userNivel', userLevel);
-            sessionStorage.setItem('currentUserLevel', userLevel);
-        }
-        
-        console.log(`🎯 Ajustando navbar para nível ${userLevel}...`);
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Converter para número
-        userLevel = parseInt(userLevel);
-        
-        // Nível 3 (usuário normal) - esconder itens restritos
-        if (userLevel >= 3) {
-            // Esconder Solicitações (se existir)
-            hideElement('#navSolicitacoes');
-            
-            // Esconder Exclusões (se existir)
-            hideElement('#navExclusoes');
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro ao ajustar navbar:', error);
-        setTimeout(hideNavbarItemsByLevel, 1000);
-    }
-}
-
-// Função auxiliar para esconder elemento
-function hideElement(selector, retryCount = 0) {
-    const element = document.querySelector(selector);
-    if (element) {
-        const parentLi = element.closest('li.nav-item');
-        if (parentLi) {
-            parentLi.style.display = 'none';
-            console.log(`👁️ Ocultando menu: ${selector}`);
-            return true;
-        }
-    }
-    
-    // Se não encontrou, tenta novamente (máx 3 tentativas)
-    if (retryCount < 3) {
-        setTimeout(() => hideElement(selector, retryCount + 1), 500);
-    }
-    
-    return false;
-}
-
-// Navbar de fallback
 function createFallbackNavbar() {
     return `
         <nav class="navbar navbar-dark bg-marrom-escuro fixed-top">
@@ -244,75 +156,39 @@ function createFallbackNavbar() {
                     Ambiente Decor
                 </span>
                 <div class="d-flex">
-                    <button class="btn btn-outline-light me-2" onclick="window.location.href='dashboard.html'">
-                        <i class="fas fa-home"></i>
-                    </button>
-                    <button class="btn btn-outline-light" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
+                    <a href="dashboard.html" class="btn btn-outline-light btn-sm me-2">Dashboard</a>
+                    <a href="orcamentos.html" class="btn btn-outline-light btn-sm me-2">Orcamentos</a>
+                    <a href="sociedade.html" class="btn btn-outline-light btn-sm">Sociedade</a>
                 </div>
             </div>
         </nav>
     `;
 }
 
-// Função de logout global
+export async function getCurrentUser() {
+    const { cpf } = await checkAuth(3);
+    const usuarioRef = ref(database, `usuarios/${cpf}`);
+    const snapshot = await get(usuarioRef);
+
+    if (!snapshot.exists()) {
+        throw new Error('Usuario nao encontrado');
+    }
+
+    return {
+        cpf,
+        data: snapshot.val() || {}
+    };
+}
+
 window.logout = function() {
     clearUserData();
-    auth.signOut().then(() => {
-        window.location.href = 'index.html';
-    }).catch((error) => {
-        console.error('Erro ao fazer logout:', error);
+    auth.signOut().finally(() => {
         window.location.href = 'index.html';
     });
 };
 
-// Função para obter dados do usuário atual
-export async function getCurrentUser() {
-    return new Promise((resolve, reject) => {
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                reject(new Error('Usuário não autenticado'));
-                return;
-            }
-            
-            try {
-                let userCPF = sessionStorage.getItem('userCPF');
-                
-                if (!userCPF) {
-                    userCPF = localStorage.getItem('userCPF');
-                }
-                
-                if (!userCPF) {
-                    throw new Error('CPF não encontrado');
-                }
-                
-                userCPF = formatarCPF(userCPF);
-                
-                const usuarioRef = ref(database, `usuarios/${userCPF}`);
-                const snapshot = await get(usuarioRef);
-                
-                if (!snapshot.exists()) {
-                    throw new Error('Usuário não encontrado');
-                }
-                
-                resolve({
-                    user,
-                    data: snapshot.val(),
-                    cpf: userCPF
-                });
-                
-            } catch (error) {
-                reject(error);
-            }
-        });
-    });
-}
-
-// Exportar funções
 export default {
     checkAuth,
     loadNavbar,
-    getCurrentUser,
-    clearUserData
+    getCurrentUser
 };

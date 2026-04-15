@@ -2,7 +2,7 @@
 import { database } from './firebase-config.js';
 import { ref, set, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { uploadImagemCloudinary, deletarImagemCloudinary } from './cloudinary-config.js';
-import { checkAuth } from './auth-check.js';
+import { checkAuth, loadNavbar } from './auth-check.js';
 
 // Variáveis globais
 let orcamentoId = null;
@@ -1128,8 +1128,17 @@ if (!window.location.pathname.includes('app.html')) {
     };
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', autoInit);
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await loadNavbar();
+            } catch (error) {
+                console.warn('Nao foi possivel carregar a navbar de orcamentos-edit:', error);
+            }
+            autoInit();
+        });
     } else {
-        autoInit();
+        loadNavbar().catch((error) => {
+            console.warn('Nao foi possivel carregar a navbar de orcamentos-edit:', error);
+        }).finally(() => autoInit());
     }
 }

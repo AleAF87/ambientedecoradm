@@ -1,4 +1,4 @@
-import { checkAuth } from './auth-check.js';
+import { checkAuth, loadNavbar } from './auth-check.js';
 import { database } from './firebase-config.js';
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
@@ -209,4 +209,13 @@ function formatarMoeda(valor) {
 window.abrirSociedade = (id) => window.app?.loadPage ? window.app.loadPage(`sociedade-edit.html?id=${id}`) : (window.location.href = `sociedade-edit.html?id=${id}`);
 window.abrirOrcamento = (id) => window.app?.loadPage ? window.app.loadPage(`orcamentos-edit.html?id=${id}`) : (window.location.href = `orcamentos-edit.html?id=${id}`);
 
-if (!window.location.pathname.includes('app.html')) initSociedade();
+if (!window.location.pathname.includes('app.html')) {
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await loadNavbar();
+    } catch (error) {
+      console.warn('Nao foi possivel carregar a navbar de sociedade:', error);
+    }
+    await initSociedade();
+  });
+}

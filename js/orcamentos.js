@@ -1,7 +1,7 @@
 // js/orcamentos.js - Listagem de Orçamentos
 import { database } from './firebase-config.js';
 import { ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-import { checkAuth } from './auth-check.js';
+import { checkAuth, loadNavbar } from './auth-check.js';
 
 // Variáveis globais
 let todosOrcamentos = [];
@@ -379,4 +379,15 @@ function obterTimestampDataContrato(orcamento) {
     }
 
     return new Date(ano, mes - 1, dia).getTime();
+}
+
+if (!window.location.pathname.includes('app.html')) {
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await loadNavbar();
+        } catch (error) {
+            console.warn('Nao foi possivel carregar a navbar de orcamentos:', error);
+        }
+        await init();
+    });
 }

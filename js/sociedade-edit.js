@@ -1,4 +1,4 @@
-import { checkAuth } from './auth-check.js';
+import { checkAuth, loadNavbar } from './auth-check.js';
 import { database } from './firebase-config.js';
 import { ref, get, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { uploadImagemCloudinary, deletarImagemCloudinary } from './cloudinary-config.js';
@@ -213,4 +213,13 @@ window.cancelarEdicao = function() {
     }
 };
 
-if (!window.location.pathname.includes('app.html')) initSociedadeEdit();
+if (!window.location.pathname.includes('app.html')) {
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await loadNavbar();
+    } catch (error) {
+      console.warn('Nao foi possivel carregar a navbar de sociedade-edit:', error);
+    }
+    await initSociedadeEdit();
+  });
+}
