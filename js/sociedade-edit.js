@@ -25,6 +25,7 @@ export async function initSociedadeEdit(idFromSPA = null) {
 
   document.getElementById('valorLiquido').value = formatarMoeda(valorLiquidoAtual);
   document.getElementById('percentualDivisao').value = dados.percentualDivisao ?? 50;
+  document.getElementById('adiantamento').checked = dados.adiantamento === true;
   document.getElementById('pagamentoDavid').value = dados.pagamentoDavid || '';
   document.getElementById('pagamentoAlexandre').value = dados.pagamentoAlexandre || '';
   anexosSociedade = normalizarAnexos(dados.anexoSociedade);
@@ -33,27 +34,35 @@ export async function initSociedadeEdit(idFromSPA = null) {
   atualizarValoresSocios();
 
   document.getElementById('percentualDivisao')?.addEventListener('input', atualizarValoresSocios);
+  document.getElementById('adiantamento')?.addEventListener('change', atualizarDisponibilidadePagamentos);
   document.getElementById('socEditForm').addEventListener('submit', salvar);
   document.getElementById('anexosSociedadeContainer')?.addEventListener('click', onClickAnexoSociedade);
 
   renderizarListaAnexosSociedade();
 }
 
-
 function atualizarDisponibilidadePagamentos() {
   const possuiSaldoPendente = saldoPendenteAtual > 0;
+  const adiantamentoMarcado = document.getElementById('adiantamento')?.checked === true;
+  const bloquearPagamento = possuiSaldoPendente && !adiantamentoMarcado;
   const pagamentoDavid = document.getElementById('pagamentoDavid');
   const pagamentoAlexandre = document.getElementById('pagamentoAlexandre');
   const alerta = document.getElementById('saldoPendenteAlert');
 
-  if (pagamentoDavid) pagamentoDavid.disabled = possuiSaldoPendente;
-  if (pagamentoAlexandre) pagamentoAlexandre.disabled = possuiSaldoPendente;
+  if (pagamentoDavid) pagamentoDavid.disabled = bloquearPagamento;
+  if (pagamentoAlexandre) pagamentoAlexandre.disabled = bloquearPagamento;
 
   if (!alerta) return;
 
-  if (possuiSaldoPendente) {
+  if (bloquearPagamento) {
     alerta.className = 'col-12 alert alert-warning mb-0';
-    alerta.textContent = `Há saldo pendente de ${formatarMoeda(saldoPendenteAtual)}. Preencha os pagamentos apenas quando o saldo for zerado.`;
+    alerta.textContent = `Há saldo pendente de ${formatarMoeda(saldoPendenteAtual)}. Marque "Adiantamento" para liberar os pagamentos antes da quitação total.`;
+    return;
+  }
+
+  if (possuiSaldoPendente && adiantamentoMarcado) {
+    alerta.className = 'col-12 alert alert-info mb-0';
+    alerta.textContent = `Há saldo pendente de ${formatarMoeda(saldoPendenteAtual)}, mas os pagamentos da sociedade estão liberados porque "Adiantamento" está marcado.`;
     return;
   }
 
@@ -180,6 +189,7 @@ async function salvar(e) {
 
   await update(ref(database, `sociedade/${itemId}`), {
     percentualDivisao,
+    adiantamento: document.getElementById('adiantamento').checked === true,
     pagamentoDavid: document.getElementById('pagamentoDavid').value || null,
     pagamentoAlexandre: document.getElementById('pagamentoAlexandre').value || null,
     valorDavid,
@@ -206,11 +216,11 @@ function voltarParaSociedade() {
 }
 
 window.cancelarEdicao = function() {
-    if (window.app && window.app.loadPage) {
-        window.app.loadPage('sociedade.html');
-    } else {
-        window.location.href = 'sociedade.html';
-    }
+  if (window.app && window.app.loadPage) {
+    window.app.loadPage('sociedade.html');
+  } else {
+    window.location.href = 'sociedade.html';
+  }
 };
 
 if (!window.location.pathname.includes('app.html')) {

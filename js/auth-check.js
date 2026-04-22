@@ -115,6 +115,7 @@ async function ensureNavbarModuleLoaded() {
 export async function loadNavbar() {
     const existingNavbar = document.getElementById('navbar');
     if (existingNavbar && existingNavbar.innerHTML.trim() !== '') {
+        document.body.classList.add('has-navbar');
         await ensureNavbarModuleLoaded();
         return true;
     }
@@ -133,6 +134,7 @@ export async function loadNavbar() {
         }
 
         navbarElement.innerHTML = await response.text();
+        document.body.classList.add('has-navbar');
         await ensureNavbarModuleLoaded();
         document.dispatchEvent(new CustomEvent('navbar:loaded'));
         return true;
@@ -142,6 +144,8 @@ export async function loadNavbar() {
         if (!navbarElement.innerHTML.trim()) {
             navbarElement.innerHTML = createFallbackNavbar();
         }
+
+        document.body.classList.add('has-navbar');
 
         return false;
     }

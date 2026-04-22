@@ -5,6 +5,7 @@
     --marrom-escuro: #8B4513;
     --bege: #F5F5DC;
     --creme: #FFF8E7;
+    --navbar-offset: 88px;
     --primary-color: var(--marrom-escuro);
     --secondary-color: var(--marrom-medio);
     --success-color: #2E7D32;
@@ -23,6 +24,10 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--creme);
     min-height: 100vh;
+}
+
+body.has-navbar {
+    padding-top: var(--navbar-offset);
 }
 
 /* ========== NAVBAR MARROM ESCURO ========== */
@@ -49,6 +54,12 @@ body {
 .navbar .nav-link.active {
     color: var(--creme) !important;
     background-color: var(--marrom-medio);
+}
+
+@media (max-width: 991.98px) {
+    :root {
+        --navbar-offset: 76px;
+    }
 }
 
 /* ========== LOGIN PAGE STYLES COM EFEITOS ========== */
